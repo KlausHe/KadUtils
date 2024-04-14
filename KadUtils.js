@@ -38,8 +38,8 @@ export function copyToClipboard(text, enabled = true) {
 	if (!isNaN(val) && Number.isFinite(Number(val))) {
 		val = val.toString().replace(/,/g, ""); //remove thousandscomma
 		val = val.replace(".", ",");
-		navigator.clipboard.writeText(val);
 	}
+  navigator.clipboard.writeText(val);
 }
 export const KadCSS = {
 	getRoot(object, numberOnly = false, RemToPX = false) {
