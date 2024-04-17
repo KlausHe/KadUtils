@@ -39,7 +39,7 @@ export function copyToClipboard(text, enabled = true) {
 		val = val.toString().replace(/,/g, ""); //remove thousandscomma
 		val = val.replace(".", ",");
 	}
-  navigator.clipboard.writeText(val);
+	navigator.clipboard.writeText(val);
 }
 export const KadCSS = {
 	getRoot(object, numberOnly = false, RemToPX = false) {
@@ -78,7 +78,13 @@ export const KadDOM = {
 			return ph;
 		}
 		obj.value = "";
-		if (ph != null) obj.placeholder = ph;
+		if (ph != null) {
+			if (obj.type == "button") {
+				obj.textContent = ph;
+			} else {
+				obj.placeholder = ph;
+			}
+		}
 		if (domOpts != null) {
 			for (let [key, val] of Object.entries(domOpts)) {
 				obj[key] = val;
@@ -662,6 +668,9 @@ export const KadColor = {
 		HSB: { postfix: ["", "%", "%"], stateRange: [0, 0, 100] },
 		CMYK: { postfix: ["%", "%", "%", "%"], stateRange: [0, 0, 0, 100] },
 	},
+	normalize(colArr) {
+		return [colArr[0] / 255, colArr[1] / 255, colArr[2] / 255];
+	},
 	colAsArray(colArr = [], cFrom = "", cTo = "") {
 		let colFrom = cFrom.toUpperCase();
 		const colTo = cTo.toUpperCase();
@@ -686,12 +695,13 @@ export const KadColor = {
 	stateAsBool(colArr = [], type = "HSL", invert = false) {
 		let RGB = type == "RGB" ? colArr : this[`${type}toRGB`](colArr);
 		let inv = type == "CMYK" ? !invert : invert;
-		let uicolors = [RGB[0] / 255, RGB[1] / 255, RGB[2] / 255];
+		let uicolors = this.normalize(RGB);
 		let c = uicolors.map((col) => {
 			if (col <= 0.03928) return col / 12.92;
 			return Math.pow((col + 0.055) / 1.055, 2.4);
 		});
-		let L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+
+		const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 		return Number(inv ? !(L < 0.179) : L < 0.179);
 	},
 	stateAsArray(colArr = [], type = "HSL", invert = false) {
@@ -816,10 +826,10 @@ export const KadColor = {
 		return [r, g, b];
 	},
 	CMYKtoRGB(CMYK) {
-		let k = CMYK[3];
-		let r = 255 - Math.min(1, CMYK[0] * (1 - k) + k) * 255;
-		let g = 255 - Math.min(1, CMYK[1] * (1 - k) + k) * 255;
-		let b = 255 - Math.min(1, CMYK[2] * (1 - k) + k) * 255;
+		const k = CMYK[3];
+		const r = 255 - Math.min(1, CMYK[0] * (1 - k) + k) * 255;
+		const g = 255 - Math.min(1, CMYK[1] * (1 - k) + k) * 255;
+		const b = 255 - Math.min(1, CMYK[2] * (1 - k) + k) * 255;
 		return [r, g, b];
 	},
 	RGBtoHEX(RGB) {
@@ -832,26 +842,27 @@ export const KadColor = {
 		return hex;
 	},
 	RGBtoHSL(RGB) {
-		let r = RGB[0] / 255;
-		let g = RGB[1] / 255;
-		let b = RGB[2] / 255;
-		const ma = Math.max(r, g, b);
-		const mi = Math.min(r, g, b);
+		const rgb = this.normalize(RGB);
+		const r = rgb[0];
+		const g = rgb[1];
+		const b = rgb[2];
+		const max = Math.max(...rgb);
+		const min = Math.min(...rgb);
 		let h = 0;
 		let s = 0;
 		let l = (ma + mi) / 2;
-		if (ma != mi) {
-			const d = ma - mi;
-			if (r == ma) {
+		if (max != min) {
+			const d = max - min;
+			if (r == max) {
 				h = (g - b) / d;
-			} else if (g == ma) {
+			} else if (g == max) {
 				h = 2 + (b - r) / d;
-			} else if (b == ma) {
+			} else if (b == max) {
 				h = 4 + (r - g) / d;
 			}
 			h = Math.min(h * 60, 360);
 			if (h < 0) h += 360;
-			s = l > 0.5 ? d / (2 - ma - mi) : d / (ma + mi);
+			s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 		}
 		h = Math.round(h);
 		s = Math.round(s * 100);
@@ -859,16 +870,16 @@ export const KadColor = {
 		return [h, s, l];
 	},
 	RGBtoHSB(RGB) {
-		let r = RGB[0];
-		let g = RGB[1];
-		let b = RGB[2];
-		let max = Math.max(r, g, b);
-		let min = Math.min(r, g, b);
+		const rgb = this.normalize(RGB);
+		const r = rgb[0];
+		const g = rgb[1];
+		const b = rgb[2];
+		const max = Math.max(...rgb);
+		const min = Math.min(...rgb);
 		let d = max - min;
 		let h;
 		let s = max === 0 ? 0 : d / max;
 		let v = max / 255;
-
 		switch (max) {
 			case min:
 				h = 0;
@@ -892,10 +903,11 @@ export const KadColor = {
 		return [h, s, v];
 	},
 	RGBtoCMYK(RGB) {
-		let r = RGB[0] / 255;
-		let g = RGB[1] / 255;
-		let b = RGB[2] / 255;
-		let max = Math.max(r, g, b);
+		const rgb = this.normalize(RGB);
+		const r = rgb[0];
+		const g = rgb[1];
+		const b = rgb[2];
+		const max = Math.max(...rgb);
 		let c, m, y;
 		let k = 1 - max;
 		if (k == 1) {
@@ -914,10 +926,8 @@ export const KadColor = {
 		return [c, m, y, k];
 	},
 	RGBtoLuminance(RGB) {
-		let r = RGB[0] / 255;
-		let g = RGB[1] / 255;
-		let b = RGB[2] / 255;
-		return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		const rgb = this.normalize(RGB);
+		return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 	},
 };
 export class KadDebug {
@@ -926,8 +936,10 @@ export class KadDebug {
 	#startTime;
 	#lapTime;
 	#showLabel;
+	#enableOutput;
 	constructor({ label = "", showLabel = false } = {}) {
 		this.#lbl = label;
+		this.#enableOutput = true;
 		this.#showLabel = showLabel;
 		this.#startTime = this.#time();
 		this.#lapTime = [this.#startTime];
@@ -940,6 +952,7 @@ export class KadDebug {
 		return new Date();
 	}
 	#print() {
+		if (!this.#enableOutput) return;
 		console.log(this.#text);
 	}
 	#label() {
@@ -950,48 +963,60 @@ export class KadDebug {
 		this.#addText(this.#label());
 		this.#addText(prompt);
 	}
-	#addText(t) {
+	#addText(t, space = true) {
 		if (t == undefined) return;
-		this.#text += `${t} `;
+		this.#text += t;
+		if (space) this.#text += " ";
 	}
 	#elapsedtTime() {
 		return `${this.#time() - this.#startTime}ms`;
 	}
 	#intervalTime(num) {
-		return `${((this.#time() - this.#startTime) / num).toFixed(3)} / ${num}`;
+		return `${((this.#time() - this.#startTime) / num).toFixed(3)}ms / ${num}`;
 	}
 	#addLap() {
 		this.#lapTime.push(this.#time());
 	}
-
-	lap(prompt) {
-		this.#addLap();
-		this.#newText(prompt || "Lap:");
-		this.#addText(this.#lapTime.at(-1) - this.#lapTime.at(-2));
-		this.#addText("ms");
-		this.#print();
-	}
-
 	now(prompt) {
+		if (!this.#enableOutput) return;
 		this.#newText(prompt);
 		this.#addText(this.#elapsedtTime());
 		this.#print();
 	}
 	reset() {
+		if (!this.#enableOutput) return;
 		this.#startTime = this.#time();
 		this.#lapTime = [this.#startTime];
 	}
-
 	average(num, prompt = null) {
+		if (!this.#enableOutput) return;
 		this.#newText(prompt);
 		this.#addText(this.#intervalTime(num));
 		this.#addText(`(${this.#elapsedtTime()})`);
 		this.#print();
 	}
-	startProfile() {
-		console.profile();
+	lap(prompt) {
+		if (!this.#enableOutput) return;
+		this.#addLap();
+		this.#newText(`${prompt}:` || "Lap:");
+		this.#addText(this.#lapTime.at(-1) - this.#lapTime.at(-2), false);
+		this.#addText("ms");
+		this.#print();
 	}
-	stopProfile() {
-		console.profileEnd();
+	disable() {
+		let tempLbl = this.#showLabel;
+		this.#showLabel = true;
+		this.#newText("disabled");
+		this.#print();
+		this.#showLabel = tempLbl;
+		this.#enableOutput = false;
+	}
+	enable() {
+		let tempLbl = this.#showLabel;
+		this.#showLabel = true;
+		this.#newText("enabled");
+		this.#print();
+		this.#showLabel = tempLbl;
+		this.#enableOutput = true;
 	}
 }
