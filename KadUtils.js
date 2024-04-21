@@ -969,39 +969,45 @@ export class KadDebug {
 		if (space) this.#text += " ";
 	}
 	#elapsedtTime() {
-		return `${this.#time() - this.#startTime}ms`;
+		return this.#time() - this.#startTime;
 	}
 	#intervalTime(num) {
-		return `${((this.#time() - this.#startTime) / num).toFixed(3)}ms / ${num}`;
+		return (this.#time() - this.#startTime) / num;
 	}
 	#addLap() {
 		this.#lapTime.push(this.#time());
-	}
-	now(prompt) {
-		if (!this.#enableOutput) return;
-		this.#newText(prompt);
-		this.#addText(this.#elapsedtTime());
-		this.#print();
 	}
 	reset() {
 		if (!this.#enableOutput) return;
 		this.#startTime = this.#time();
 		this.#lapTime = [this.#startTime];
 	}
+	now(prompt) {
+		if (!this.#enableOutput) return;
+		this.#newText(prompt);
+		const returnTime = this.#elapsedtTime();
+		this.#addText(`${returnTime}ms`);
+		this.#print();
+		return returnTime;
+	}
 	average(num, prompt = null) {
 		if (!this.#enableOutput) return;
 		this.#newText(prompt);
-		this.#addText(this.#intervalTime(num));
-		this.#addText(`(${this.#elapsedtTime()})`);
+		const returnTime = this.#intervalTime(num);
+		this.#addText(returnTime`${returnTime.toFixed(3)}ms / ${num}`);
+		this.#addText(`(${this.#elapsedtTime()}ms)`);
 		this.#print();
+		return returnTime;
 	}
 	lap(prompt) {
 		if (!this.#enableOutput) return;
 		this.#addLap();
 		this.#newText(`${prompt}:` || "Lap:");
-		this.#addText(this.#lapTime.at(-1) - this.#lapTime.at(-2), false);
+		const returnTime = this.#lapTime.at(-1) - this.#lapTime.at(-2);
+		this.#addText(returnTime, false);
 		this.#addText("ms");
 		this.#print();
+		return returnTime;
 	}
 	disable() {
 		let tempLbl = this.#showLabel;
