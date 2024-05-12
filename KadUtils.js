@@ -81,6 +81,8 @@ export const KadDOM = {
 		if (ph != null) {
 			if (obj.type == "button") {
 				obj.textContent = ph;
+			} else if (obj.type == "date") {
+				obj.value = ph;
 			} else {
 				obj.placeholder = ph;
 			}
@@ -416,6 +418,13 @@ export const KadDate = {
 		const firstThu = new Date(new Date(yearThu, 0, 4).getTime() + (3 - ((new Date(yearThu, 0, 4).getDay() + 6) % 7)) * 86400000);
 		return Math.floor(1 + 0.5 + (curThu.getTime() - firstThu.getTime()) / 604800000);
 	},
+	dateFromInput(id, opts = {}) {
+		const date = dbID(id).value;
+		if (opts.hasOwnProperty("format")) {
+			return this.getDate(date, opts.format);
+		}
+		return date;
+	},
 };
 export const KadString = {
 	firstLetterCap(s) {
@@ -469,6 +478,7 @@ export const KadTable = {
 		return cell || prevCell;
 	},
 	createCell(type, opt) {
+		opt.type = type;
 		return KadTable.cells[type](opt);
 	},
 	cells: {
@@ -533,6 +543,7 @@ export const KadTable = {
 		H1(opt) {
 			const child = document.createElement("H1");
 			child.innerHTML = opt.text;
+			child.type = "H1";
 			this.UIOptions(child, opt);
 			return child;
 		},
@@ -994,7 +1005,7 @@ export class KadDebug {
 		if (!this.#enableOutput) return;
 		this.#newText(prompt);
 		const returnTime = this.#intervalTime(num);
-		this.#addText(returnTime`${returnTime.toFixed(3)}ms / ${num}`);
+		this.#addText(`${returnTime.toFixed(3)}ms / ${num}`);
 		this.#addText(`(${this.#elapsedtTime()}ms)`);
 		this.#print();
 		return returnTime;
