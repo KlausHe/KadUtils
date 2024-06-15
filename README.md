@@ -1,4 +1,6 @@
-# Collection of utility functions from the "KAD-Universe" (https://klaushe.github.io/KAD/)
+# KAD-Utils 
+
+## Collection of utility functions from the "KAD-Universe" (https://klaushe.github.io/KAD/)
 
 This utility collection is a es6-module file without dependencies or libraries. 
 It contains partly specific functionality for my website and on the other hand general things like color conversions.
