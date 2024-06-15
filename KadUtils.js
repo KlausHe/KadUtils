@@ -36,20 +36,20 @@ export function dbCLStyle(id, loc = 0) {
 export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts } = {}) {
 	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
 	const typeAction = {
-		text: "input", // input change focus click
+		text: "input", 
 		email: "input",
 		password: "input",
-		textarea: "input", // input change
-		number: "input", // input change focus click
-		submit: "click", //click (default-type od "button")
-		button: "click", //click
-		"select-one": "change", // change focus
-		select: "change", // change focus
-		checkbox: "click", // click
+		textarea: "input",
+		number: "input", 
+		submit: "click", 
+		button: "click", 
+		"select-one": "change",
+		select: "change", 
+		checkbox: "click", 
 		date: "change",
 		"datetime-local": "change",
-		Canv: "keydown", // keydown keyup
-		DIV: "click", // click
+		Canv: "keydown", 
+		DIV: "click", 
 	};
 
 	const type = id.type ? id.type : id.nodeName;
