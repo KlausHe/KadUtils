@@ -14,6 +14,201 @@ export function dbCLStyle(id, loc = 0) {
 	if (loc === null) return [...document.getElementsByClassName(id)].map((s) => s.style);
 	return document.getElementsByClassName(id)[loc].style;
 }
+
+/**
+ *
+ *
+ * @export
+ * @param {{ id: HTMLElement; action?: string; fn: function; selList?: array; selGroup: any; selStartIndex?: number; selStartValue: any; dbList?: array; resetValue: any; domOpts: any; }} [param0={}]
+ * @param {HTMLElement} param0.id
+ * @param {string} [param0.action=null]
+ * @param {function} param0.fn
+ * @param {array} [param0.selList=[]]
+ * @param {string} param0.selGroup
+ * @param {number} [param0.selStartIndex=null]
+ * @param {string|number} [param0.selStartValue=null]
+ * @param {[]} [param0.dbList=[]]
+ * @param {string|number} param0.resetValue
+ * @param {object} param0.domOpts
+ * @returns {string|number}
+ */
+
+export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts } = {}) {
+	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
+	const typeAction = {
+		text: "input", // input change focus click
+		email: "input",
+		password: "input",
+		textarea: "input", // input change
+		number: "input", // input change focus click
+		submit: "click", //click (default-type od "button")
+		button: "click", //click
+		"select-one": "change", // change focus
+		select: "change", // change focus
+		checkbox: "click", // click
+		date: "change",
+		"datetime-local": "change",
+		Canv: "keydown", // keydown keyup
+		DIV: "click", // click
+	};
+
+	const type = id.type ? id.type : id.nodeName;
+	daEL(id, action || typeAction[type], fn);
+
+	// fill "datalist"
+	if (dbList.length > 0) {
+		id.addEventListener(
+			"focus",
+			() => {
+				const datalist = document.createElement("datalist");
+				datalist.id = `idDlist_${id.id}`;
+				id.parentNode.appendChild(datalist);
+				id.setAttribute("list", datalist.id);
+				for (const data of dbList) {
+					datalist.appendChild(new Option(data));
+				}
+			},
+			{ once: true }
+		);
+	}
+
+	// fill "Select"
+	let list = selList;
+	let groupList = selGroup;
+	let startIndex = selStartIndex;
+	let startValue = selStartValue;
+
+	if (list.length > 0) {
+		makeSelList({ list });
+	}
+	if (objectLength(groupList) > 0) {
+		makeGroupList({ groupList });
+	}
+	// add GET function
+	if (["number"].includes(type)) {
+		id.KadGet = function (failSafeVal = null, noPlaceholder = null) {
+			let fail = failSafeVal != null ? failSafeVal : resetValue;
+			return KadDOM.numberFromInput(id, fail, noPlaceholder);
+		};
+	}
+	if (["text", "email", "password", "textarea"].includes(type)) {
+		if (action == "focus") return;
+		id.KadGet = function (failSafeVal = null, noPlaceholder = null) {
+			let fail = failSafeVal != null ? failSafeVal : resetValue;
+			return KadDOM.stringFromInput(id, fail, noPlaceholder);
+		};
+	}
+	if (["select-one", "select"].includes(type)) {
+		if (action == "focus") return;
+		id.KadGet = function ({ textContent = null, index = null } = {}) {
+			if (textContent) return id.textContent;
+			if (index) return id.selectedIndex;
+			return id.value;
+		};
+	}
+	let dateFormating = dateOpts;
+	if (["date", "datetime-local"].includes(type)) {
+		if (action == "focus") return;
+		id.KadGet = function ({ format = null, dateObject = null } = {}) {
+			dateFormating.format = format != null ? format : dateFormating.format;
+			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
+			if (dateFormating.format != null) return KadDate.getDate(id.value, dateFormating.format);
+			if (dateFormating.dateObject != null) return new Date(id.value);
+			return id.value;
+		};
+	}
+
+	// add reset-function
+	let reset = resetValue;
+	if (["select-one", "select"].includes(type)) {
+		id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null } = {}) {
+			startIndex = selStartIndex != null ? selStartIndex : startIndex;
+			startValue = selStartValue != null ? selStartValue : startValue;
+			if (selList.length > 0) {
+				KadDOM.clearFirstChild(id);
+				list = selList;
+				makeSelList({ list });
+			} else if (objectLength(selGroup) > 0) {
+				KadDOM.clearFirstChild(id);
+				groupList = selGroup;
+				makeGroupList({ groupList });
+			} else {
+				let i = 0;
+				for (let data of selList) {
+					let d = Array.isArray(data) ? data : [data];
+					if (value && d[0] == value) {
+						id.options[i].selected = true;
+						break;
+					}
+					i++;
+				}
+			}
+			return checkReturn(startIndex, startValue);
+		};
+	} else if (["date", "datetime-local"].includes(type)) {
+		id.KadReset = function ({ format = null, dateObject = null } = {}) {
+			dateFormating.format = format != null ? format : dateFormating.format;
+			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
+			if (dateFormating.format != null) return KadDate.getDate(id.value, dateFormating.format);
+			if (dateFormating.dateObject != null) return new Date(id.value);
+			KadDOM.resetInput(id, reset, domOpts);
+			return id.value;
+		};
+	} else {
+		id.KadReset = function ({ resetValue = null } = {}) {
+			reset = resetValue != null ? resetValue : reset;
+			KadDOM.resetInput(id, reset, domOpts);
+			return reset;
+		};
+	}
+
+	function makeSelList({ list = [] } = {}) {
+		KadDOM.clearFirstChild(id);
+		for (let data of list) {
+			let d = Array.isArray(data) ? data : [data];
+			const opt = new Option(...d);
+			id.appendChild(opt);
+			if (startValue !== null && startValue == d[1]) {
+				opt.selected = true;
+			}
+		}
+		if (startIndex !== null) id.selectedIndex = startIndex;
+	}
+
+	function makeGroupList({ groupList = {} } = {}) {
+		KadDOM.clearFirstChild(id);
+		for (let [groupName, list] of Object.entries(groupList)) {
+			let optG;
+			if (groupName) {
+				optG = document.createElement("optgroup");
+				id.appendChild(optG);
+				optG.label = groupName;
+			}
+			for (let data of list) {
+				let d = Array.isArray(data) ? data : [data];
+				const opt = new Option(...d);
+				optG.appendChild(opt);
+				if (startValue !== null && startValue == d[0]) opt.selected = true;
+			}
+			if (startIndex !== null) id.selectedIndex = startIndex;
+		}
+	}
+
+	function checkReturn(startIndex, startValue) {
+		let indexNull = startIndex === null;
+		let valueNull = startValue === null;
+		if (indexNull && valueNull) {
+			return 0;
+		} else if (!indexNull && valueNull) {
+			return startIndex;
+		} else if ((indexNull && !valueNull) || (!indexNull && !valueNull)) {
+			return startValue;
+		}
+		return null;
+	}
+}
+
+/*-------------------------- */
 export function daEL(id, type, fn) {
 	dbID(id).addEventListener(type, fn);
 }
@@ -21,10 +216,77 @@ export function objectLength(obj) {
 	return Object.keys(obj).length;
 }
 export function hostDebug() {
-	return ["local", "127.0.0.1"].some((s) => window.location.hostname.includes(s));
+	return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+function getStackFunctionAt(level = 1) {
+	const levelString = Error().stack.split(/\r?\n|\r|\n/g);
+	const l = Math.min(Math.max(0, level + 1), levelString.length - 2);
+	let arr = levelString[l].split(/[@://]{1,}/);
+	const data = {
+		function: `${arr[0]}()`,
+		folder: arr[4],
+		file: arr[5],
+		line: arr[6],
+	};
+	return `${data.function} ${data.folder}/${data.file}: ${data.line}`;
+}
+/**
+ *
+ * @param  {...any} logText
+ * @returns
+ */
+export function log(...logText) {
+	if (!hostDebug()) return;
+	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
+	let text = "";
+	if (typeof logText === "object" && logText !== null) text = logText;
+	else text = logText.join(" ");
+	if (text) console.log(...text);
+	console.groupEnd();
+}
+
+/**
+ *
+ *
+ * @export
+ * @param {number} depth
+ * @param {...{}} logText
+ */
+export function logLevel(depth, ...logText) {
+	if (!hostDebug()) return;
+	const level = typeof depth === "number" ? depth : 1;
+	console.group(`%c${getStackFunctionAt(level)}`, "background: white; color: black");
+	let text = "";
+	if (typeof logText === "object" && logText !== null) text = logText;
+	else text = logText.join(" ");
+	if (text) console.log(...text);
+	console.groupEnd();
+}
+export function logChecked(state, ...logText) {
+	if (!hostDebug()) return;
+	if (state) {
+		console.group(`%c${getStackFunctionAt()}`, "background: green; color: white");
+		let text = logText.join(" ");
+		if (text) console.log(text);
+		console.groupEnd();
+		return true;
+	}
+	return false;
 }
 export function error(...errorText) {
-	throw new Error(errorText.join("; "));
+	if (!hostDebug()) return;
+	console.group(`%c${getStackFunctionAt()}`, "background: red; color: white");
+	let text = errorText.join(" ");
+	if (text) console.log(text);
+	throw console.groupEnd();
+}
+export function errorChecked(state, ...errorText) {
+	if (!hostDebug()) return;
+	if (!state) return;
+	console.group(`%c${getStackFunctionAt()}`, "background: red; color: black");
+	let text = errorText.join(" ");
+	if (text) console.log(text);
+	throw console.groupEnd();
 }
 
 export function deepClone(data) {
@@ -71,25 +333,62 @@ export const KadDOM = {
 	getImgPath(name) {
 		return `Data/Images/SVG/${name}.svg`;
 	},
+	htmlSetButtonType(id = null) {
+		if (id && dbID(id).nameTag == "BUTTON") {
+			dbID(id).type = "button";
+		} else {
+			const buttons = document.getElementsByTagName("button");
+			for (let button of buttons) {
+				button.type = "button";
+			}
+		}
+	},
+	htmlSetVinChange() {
+		const dirName = ["oSub", "trash", "oAdd"];
+		envoked("vinChangeSub", -1);
+		envoked("vinChangeTrash", 0);
+		envoked("vinChangeAdd", 1);
+
+		function envoked(name, dir) {
+			const obj = dbCL(`${name}`, null);
+			for (let btn of obj) {
+				btn.onclick = () => {
+					return KadDOM.vinChange(btn, dir);
+				};
+				const name = dirName[dir + 1];
+				const img = document.createElement("img");
+				img.classList.add(`img_${name}`);
+				img.setAttribute("alt", `${name}.svg`);
+				btn.appendChild(img);
+			}
+		}
+	},
 	resetInput(id, ph = null, domOpts = null) {
 		const obj = dbID(id);
+		const type = obj.type ? obj.type : obj.nodeName;
 		if (obj.type == "checkbox") {
 			obj.checked = ph;
 			return ph;
 		}
-		obj.value = "";
-		if (ph != null) {
-			if (obj.type == "button") {
-				obj.textContent = ph;
-			} else if (obj.type == "date") {
-				obj.value = ph;
-			} else {
-				obj.placeholder = ph;
-			}
-		}
 		if (domOpts != null) {
 			for (let [key, val] of Object.entries(domOpts)) {
 				obj[key] = val;
+			}
+		}
+		if (ph != null) {
+			if (["submit", "button", "DIV"].includes(type)) {
+				obj.textContent = ph;
+			} else if (type == "date") {
+				obj.value = ph;
+			} else if (type == "time") {
+				obj.value = ph;
+			} else if (type == "datetime-local") {
+				obj.value = ph;
+			} else if (type == "color") {
+				obj.value = ph;
+			} else {
+				obj.placeholder = ph;
+				obj.value = "";
 			}
 		}
 		return Number(obj.placeholder);
@@ -110,7 +409,7 @@ export const KadDOM = {
 		let obj = null;
 		let siblingList = Array.from(id.parentNode.children);
 		for (let i = siblingList.indexOf(id) - 1; i >= 0; i--) {
-			if (siblingList[i].type != "button") {
+			if (siblingList[i].type != "button" && siblingList[i].type != "submit") {
 				obj = siblingList[i];
 				break;
 			}
@@ -119,7 +418,7 @@ export const KadDOM = {
 		if (obj.disabled) return;
 		const dir = Number(v);
 		if (obj.type == "time") evaluateTime();
-		if (obj.type == "number") evaluateNumber();
+		if (["submit", "number"].includes(obj.type)) evaluateNumber();
 		obj.dispatchEvent(new Event("input"));
 		obj.focus();
 		function evaluateTime() {
@@ -161,16 +460,16 @@ export const KadDOM = {
 		if (noPlaceholder != null) return null;
 		return Number(obj.placeholder);
 	},
-	stringFromInput(id, failSafeVal = null, noPlaceholder = null) {
+	stringFromInput(id, failSafeVal = null, noPlaceholder = true) {
 		const obj = dbID(id);
 		const value = obj.value.trim();
 		if (value != "") return obj.value;
 		if (failSafeVal != null) return failSafeVal;
-		if (noPlaceholder != null) return null;
+		if (noPlaceholder != null) return "";
 		return obj.placeholder;
 	},
 	clearFirstChild(id) {
-		const obj = typeof id == "string" ? dbID(id) : id;
+		const obj = dbID(id);
 		while (obj.firstChild) {
 			obj.removeChild(obj.firstChild);
 		}
@@ -248,7 +547,8 @@ export const KadValue = {
 };
 export const KadArray = {
 	createArray(x, y = null, fillNum = null) {
-		if (y == null) return new Array(x).fill(0).map((n, i) => i);
+		if (y == null && fillNum == null) return new Array(x).fill(0).map((n, i) => i);
+		if (y == null && fillNum != null) return new Array(x).fill(fillNum);
 		let arrX = new Array(x);
 		for (let i = 0; i < arrX.length; i++) {
 			arrX[i] = fillNum == null ? (arrX[i] = new Array(y)) : new Array(y).fill(fillNum);
@@ -345,7 +645,7 @@ export const KadRandom = {
 };
 export const KadDate = {
 	getDate(date = null, { format = "DD.MM.YYYY", leadingDigit = true, reversed = false } = {}) {
-		const regexSplit = new RegExp(/([$-/:-?{-~!"^_`\ [\]])/);
+		const regexSplit = new RegExp(/([T$-/:-?{-~!"^_`\ [\]])/);
 		const conversions = {
 			date: date === null ? new Date() : new Date(date),
 			get YYYY() {
@@ -604,7 +904,7 @@ export const KadTable = {
 		UIOptions(cell, opt) {
 			opt.name = KadTable.createName(opt);
 			cell.id = `id${opt.type}_child${opt.name}`;
-			if (opt.hasOwnProperty("idNoChild")) cell.id = `id${opt.type}${opt.name}`;
+			if (opt.hasOwnProperty("idNoChild") && opt.idNoChild) cell.id = `id${opt.type}${opt.name}`;
 			if (opt.hasOwnProperty("datasets")) {
 				for (const [key, value] of Object.entries(opt.datasets)) {
 					cell.setAttribute(`data-${key}`, value);
@@ -861,7 +1161,7 @@ export const KadColor = {
 		const min = Math.min(...rgb);
 		let h = 0;
 		let s = 0;
-		let l = (ma + mi) / 2;
+		let l = (max + min) / 2;
 		if (max != min) {
 			const d = max - min;
 			if (r == max) {
