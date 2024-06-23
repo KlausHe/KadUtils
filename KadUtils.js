@@ -113,9 +113,15 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		id.KadGet = function ({ format = null, dateObject = null } = {}) {
 			dateFormating.format = format != null ? format : dateFormating.format;
 			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
-			if (dateFormating.format != null) return KadDate.getDate(id.value, dateFormating.format);
-			if (dateFormating.dateObject != null) return new Date(id.value);
-			return id.value;
+
+			let returnValue = id.value;
+			if (dateFormating.format != null) {
+				returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
+			}
+			if (dateFormating.dateObject != null) {
+				returnValue = new Date(returnValue);
+			}
+			return returnValue;
 		};
 	}
 
@@ -159,13 +165,19 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return checkReturn(startIndex, startValue)[0];
 		};
 	} else if (["date", "datetime-local"].includes(type)) {
-		id.KadReset = function ({ format = null, dateObject = null } = {}) {
+		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
+			reset = resetValue != null ? resetValue : reset;
+			KadDOM.resetInput(id, reset, domOpts);
 			dateFormating.format = format != null ? format : dateFormating.format;
 			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
-			if (dateFormating.format != null) return KadDate.getDate(id.value, dateFormating.format);
-			if (dateFormating.dateObject != null) return new Date(id.value);
-			KadDOM.resetInput(id, reset, domOpts);
-			return id.value;
+			let returnValue = id.value;
+			if (dateFormating.format != null) {
+				returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
+			}
+			if (dateFormating.dateObject != null) {
+				returnValue = new Date(returnValue);
+			}
+			return returnValue;
 		};
 	} else {
 		id.KadReset = function ({ resetValue = null } = {}) {
@@ -174,7 +186,6 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return reset;
 		};
 	}
-
 	function makeSelList({ list = [] } = {}) {
 		KadDOM.clearFirstChild(id);
 		let select = checkReturn(startIndex, startValue);
