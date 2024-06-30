@@ -352,11 +352,19 @@ export const KadCSS = {
 	},
 };
 export const KadDOM = {
+	scrollToTop(id) {
+		dbID(id).scroll({
+      top:0,
+			behavior: "smooth",
+			block: "nearest",
+			inline: "start", //start
+		});
+	},
 	scrollInView(id) {
 		dbID(id).scrollIntoView({
 			behavior: "smooth",
 			block: "nearest",
-			inline: "end", //start
+			inline: "start", //start
 		});
 	},
 	getImgPath(name) {
@@ -782,7 +790,7 @@ export const KadTable = {
 		opt.name = this.createName(opt);
 		let cell = document.createElement("th");
 		cell.id = `id${opt.type}${opt.name}`;
-		const mainChild = this.createCell(opt.type, opt);
+		const mainChild = this.createCell(opt);
 		cell.appendChild(mainChild);
 		this.CellOptions(cell, opt);
 		row.appendChild(cell);
@@ -790,7 +798,7 @@ export const KadTable = {
 	},
 	addCell(row, opt = {}, prevCell = null) {
 		opt.name = this.createName(opt);
-		const mainChild = this.createCell(opt.type, opt);
+		const mainChild = this.createCell(opt);
 		let cell = undefined;
 		if (prevCell === null) {
 			cell = row.insertCell(-1);
@@ -806,9 +814,8 @@ export const KadTable = {
 		this.CellOptions(cell || prevCell, opt);
 		return cell || prevCell;
 	},
-	createCell(type, opt) {
-		opt.type = type;
-		return KadTable.cells[type](opt);
+	createCell(opt = {}) {
+		return KadTable.cells[opt.type](opt);
 	},
 	cells: {
 		Vin(opt) {
