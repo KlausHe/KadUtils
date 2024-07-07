@@ -237,7 +237,6 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	}
 }
 
-/*-------------------------- */
 export function daEL(id, type, fn) {
 	dbID(id).addEventListener(type, fn);
 }
@@ -247,6 +246,7 @@ export function objectLength(obj) {
 export function hostDebug() {
 	return ["localhost", "127.0.0.1"].includes(window.location.hostname);
 }
+
 function getStackFunctionAt(level = 1) {
 	const levelString = Error().stack.split(/\r?\n|\r|\n/g);
 	const l = Math.min(Math.max(0, level + 1), levelString.length - 2);
@@ -273,7 +273,6 @@ export function log(...logText) {
 	if (text) console.log(...text);
 	console.groupEnd();
 }
-
 /**
  *
  *
@@ -333,17 +332,26 @@ export function copyToClipboard(text, enabled = true) {
 	navigator.clipboard.writeText(val);
 }
 export const KadCSS = {
-	getRoot(object, numberOnly = false, RemToPX = false) {
-		//  getCssRoot("navbarHeight", return only numberOnly=true)
-		const obj = `--${object}`;
+	/**
+	 *
+	 *
+	 * @param {string} value
+	 * @param {{ noUnit?: boolean; RemToPx?: boolean; }} [param0={}]
+	 * @param {boolean} [param0.noUnit=true]
+	 * @param {boolean} [param0.RemToPx=false]
+	 * @returns {*}
+	 */
+	getRoot({ value, noUnit = true, RemToPx = false } = {}) {
+		//  getCssRoot("navbarHeight", return only noUnit=true)
+		const obj = `--${value}`;
 		const valOrig = getComputedStyle(document.body).getPropertyValue(obj);
 		const unit = valOrig.match(/[a-zA-Z]{1,}/g);
-		if (RemToPX == true && unit == "rem") {
+		if (RemToPx == true && unit == "rem") {
 			const size = getComputedStyle(document.body).getPropertyValue("--fontSize").replace(/px/g, "");
 			const valConverted = valOrig.replace(/rem/g, "");
 			return Number(size * valConverted);
 		}
-		if (numberOnly == false) return getComputedStyle(document.body).getPropertyValue(obj).trim();
+		if (noUnit == false) return getComputedStyle(document.body).getPropertyValue(obj).trim();
 		const valConverted = valOrig.replace(/s|px|rem/g, "");
 		return Number(valConverted);
 	},
@@ -354,7 +362,7 @@ export const KadCSS = {
 export const KadDOM = {
 	scrollToTop(id) {
 		dbID(id).scroll({
-      top:0,
+			top: 0,
 			behavior: "smooth",
 			block: "nearest",
 			inline: "start", //start
@@ -526,11 +534,10 @@ export const KadInteraction = {
 		}
 	},
 };
-export const KadImage = {
-	getFavicon(url, size = 15) {
-		return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`; //alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
-	},
-};
+export function getFavicon(url, size = 15) {
+	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
+	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
+}
 export const KadValue = {
 	number(value = 1, { form = null, indicator = false, leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
 		const formating = form == null ? "de-DE" : "," ? "de-DE" : "en-EN";
@@ -787,7 +794,7 @@ export const KadTable = {
 		return obj.insertRow(obj.rows.length);
 	},
 	addHeaderCell(row, opt) {
-		opt.name = this.createName(opt);
+		opt.name = this.createID(opt);
 		let cell = document.createElement("th");
 		cell.id = `id${opt.type}${opt.name}`;
 		const mainChild = this.createCell(opt);
@@ -797,7 +804,7 @@ export const KadTable = {
 		return cell;
 	},
 	addCell(row, opt = {}, prevCell = null) {
-		opt.name = this.createName(opt);
+		opt.name = this.createID(opt);
 		const mainChild = this.createCell(opt);
 		let cell = undefined;
 		if (prevCell === null) {
@@ -827,7 +834,7 @@ export const KadTable = {
 				child.type = opt.subGroup;
 				child.placeholder = opt.placeholder;
 			}
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Btn(opt) {
@@ -862,7 +869,7 @@ export const KadTable = {
 					child.type = "text";
 					child.textContent = opt.text;
 			}
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Lbl(opt) {
@@ -873,14 +880,14 @@ export const KadTable = {
 				child.for = opt.for;
 				opt.pointer = true;
 			}
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		H1(opt) {
 			const child = document.createElement("H1");
 			child.innerHTML = opt.text;
 			child.type = "H1";
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Sel(opt) {
@@ -894,7 +901,7 @@ export const KadTable = {
 			for (let n = 0; n < opt.options.length; n++) {
 				child.options[n + start] = new Option(opt.options[n]);
 			}
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Colbox(opt) {
@@ -902,7 +909,7 @@ export const KadTable = {
 			opt.type = "Colbox";
 			child.classList.add("coloredBox");
 			child.style.background = KadColor.formatAsCSS(opt.color, "HSL");
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Img(opt) {
@@ -929,62 +936,58 @@ export const KadTable = {
 					child.src = opt.img;
 					break;
 			}
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Div(opt) {
 			const child = document.createElement("div");
-			this.UIOptions(child, opt);
+			KadTable.UIOptions(child, opt);
 			return child;
 		},
-		UIOptions(cell, opt) {
-			opt.name = KadTable.createName(opt);
-			cell.id = `id${opt.type}_child${opt.name}`;
-			if (opt.hasOwnProperty("idNoChild") && opt.idNoChild) cell.id = `id${opt.type}${opt.name}`;
-			if (opt.hasOwnProperty("datasets")) {
-				for (const [key, value] of Object.entries(opt.datasets)) {
-					cell.setAttribute(`data-${key}`, value);
-				}
+	},
+	UIOptions(cell, opt) {
+		opt.name = KadTable.createID(opt);
+		cell.id = `id${opt.type}_child${opt.name}`;
+		if (opt.hasOwnProperty("idNoChild") && opt.idNoChild) cell.id = `id${opt.type}${opt.name}`;
+
+		if (opt.hasOwnProperty("createClass")) {
+			for (const cl of opt.createClass) {
+				if (cl != "" && cl != null) cell.classList.add(cl);
 			}
-			if (opt.hasOwnProperty("createClass")) {
-				for (const cl of opt.createClass) {
-					if (cl != "" && cl != null) cell.classList.add(cl);
-				}
+		}
+		if (opt.hasOwnProperty("title")) {
+			cell.title = opt.title;
+		}
+		if (opt.hasOwnProperty("style")) {
+			for (const [key, value] of Object.entries(opt.style)) {
+				cell.style[key] = value;
+				if (opt.styleChild) cell.childNodes[0].style[key] = value;
 			}
-			if (opt.hasOwnProperty("title")) {
-				cell.title = opt.title;
+		}
+		if (opt.hasOwnProperty("ui")) {
+			for (const [key, value] of Object.entries(opt.ui)) {
+				cell.setAttribute(key, value);
 			}
-			if (opt.hasOwnProperty("style")) {
-				for (const [key, value] of Object.entries(opt.style)) {
-					cell.style[key] = value;
-					if (opt.styleChild) cell.childNodes[0].style[key] = value;
-				}
-			}
-			if (opt.hasOwnProperty("ui")) {
-				for (const [key, value] of Object.entries(opt.ui)) {
-					cell.setAttribute(key, value);
-				}
-			}
-			if (opt.pointer || opt.copy) cell.style.cursor = "copy";
-			if (opt.copy) {
-				cell.addEventListener("click", () => copyToClipboard(cell.textContent), false);
-			}
-			if (opt.alias) cell.style.cursor = "alias";
-			if (opt.hasOwnProperty("for")) cell.setAttribute("for", opt.for);
-			if (opt.hasOwnProperty("oninput")) cell.addEventListener(opt.oninput, "input", false);
-			if (opt.hasOwnProperty("onclick")) {
-				cell.addEventListener("click", opt.onclick, false);
-				// cell.style.cursor = "pointer";
-			}
-			if (opt.onmouseover) {
-				cell.onmouseover = opt.onmouseover;
-				cell.addEventListener("mouseover", opt.onmouseover);
-			}
-			if (opt.onmouseleave) {
-				cell.onmouseleave = opt.onmouseleave;
-				cell.addEventListener("mouseleave", opt.onmouseleave);
-			}
-		},
+		}
+		if (opt.pointer || opt.copy) cell.style.cursor = "copy";
+		if (opt.copy) {
+			cell.addEventListener("click", () => copyToClipboard(cell.textContent), false);
+		}
+		if (opt.alias) cell.style.cursor = "alias";
+		if (opt.hasOwnProperty("for")) cell.setAttribute("for", opt.for);
+		if (opt.hasOwnProperty("oninput")) cell.addEventListener(opt.oninput, "input", false);
+		if (opt.hasOwnProperty("onclick")) {
+			cell.addEventListener("click", opt.onclick, false);
+			// cell.style.cursor = "pointer";
+		}
+		if (opt.onmouseover) {
+			cell.onmouseover = opt.onmouseover;
+			cell.addEventListener("mouseover", opt.onmouseover);
+		}
+		if (opt.onmouseleave) {
+			cell.onmouseleave = opt.onmouseleave;
+			cell.addEventListener("mouseleave", opt.onmouseleave);
+		}
 	},
 	CellOptions(cell, opt) {
 		if (opt.hasOwnProperty("cellStyle")) {
@@ -1003,7 +1006,7 @@ export const KadTable = {
 		cell.colSpan = opt.colSpan || 1;
 		cell.rowSpan = opt.rowSpan || 1;
 	},
-	createName(opt) {
+	createID(opt) {
 		return opt.hasOwnProperty("name") ? opt.name : `_${opt.names.join("_")}`;
 	},
 };
