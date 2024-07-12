@@ -789,7 +789,7 @@ export const KadTable = {
 			obj.deleteRow(i);
 		}
 	},
-	insertRow(tabID) {
+	createRow(tabID) {
 		const obj = dbID(tabID);
 		return obj.insertRow(obj.rows.length);
 	},
