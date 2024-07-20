@@ -33,7 +33,7 @@ export function dbCLStyle(id, loc = 0) {
  * @returns {string|number}
  */
 
-export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts } = {}) {
+export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts = {} } = {}) {
 	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
 	const typeAction = {
 		text: "input",
@@ -122,6 +122,11 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 				returnValue = new Date(returnValue);
 			}
 			return returnValue;
+		};
+	}
+  if (["checkbox"].includes(type)) {
+		id.KadGet = function () {
+			return id.checked;
 		};
 	}
 
