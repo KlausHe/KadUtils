@@ -88,21 +88,24 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	}
 	// add GET function
 	if (["number"].includes(type)) {
-		id.KadGet = function (failSafeVal = null, noPlaceholder = null) {
-			let fail = failSafeVal != null ? failSafeVal : resetValue;
+		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			let fail = failSafe != null ? failSafe : resetValue;
 			return KadDOM.numberFromInput(id, fail, noPlaceholder);
 		};
 	}
 	if (["text", "email", "password", "textarea"].includes(type)) {
 		if (action == "focus") return;
-		id.KadGet = function (failSafeVal = null, noPlaceholder = null) {
-			let fail = failSafeVal != null ? failSafeVal : resetValue;
+		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			let fail = failSafe != null ? failSafe : resetValue;
 			return KadDOM.stringFromInput(id, fail, noPlaceholder);
 		};
 	}
 	if (["select-one", "select"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ textContent = null, index = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
 			if (textContent) return id.textContent;
 			if (index) return id.selectedIndex;
 			return id.value;
@@ -111,6 +114,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	if (["date", "datetime-local"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ format = null, dateObject = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
 			dateFormating.format = format != null ? format : dateFormating.format;
 			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
@@ -124,7 +128,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return returnValue;
 		};
 	}
-  if (["checkbox"].includes(type)) {
+	if (["checkbox"].includes(type)) {
 		id.KadGet = function () {
 			return id.checked;
 		};
@@ -133,6 +137,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	// add reset-function
 	if (["select-one", "select"].includes(type)) {
 		id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
 			startIndex = selStartIndex != null ? selStartIndex : startIndex;
 			startValue = selStartValue != null ? selStartValue : startValue;
 			if (selList.length > 0) {
@@ -171,6 +176,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		};
 	} else if (["date", "datetime-local"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			dateFormating.format = format != null ? format : dateFormating.format;
@@ -186,6 +192,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		};
 	} else {
 		id.KadReset = function ({ resetValue = null } = {}) {
+			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			return reset;
@@ -239,6 +246,10 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return [startValue, "value"];
 		}
 		return null;
+	}
+	function checkObjectType(typeString) {
+		if (typeString == "undefined") return false;
+		if (typeString != "object") return true;
 	}
 }
 
@@ -317,6 +328,15 @@ export function errorChecked(state, ...errorText) {
 	if (!hostDebug()) return;
 	if (!state) return;
 	console.group(`%c${getStackFunctionAt()}`, "background: red; color: black");
+	let text = errorText.join(" ");
+	if (text) console.log(text);
+	throw console.groupEnd();
+}
+export function errorCheckedLevel(state, depth, ...errorText) {
+	if (!hostDebug()) return;
+	if (!state) return;
+	const level = typeof depth === "number" ? depth : 1;
+	console.group(`%c${getStackFunctionAt(level)}`, "background: red; color: black");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
 	throw console.groupEnd();
