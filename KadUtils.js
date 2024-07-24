@@ -46,6 +46,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		"select-one": "change",
 		select: "change",
 		checkbox: "click",
+		time: "input",
 		date: "change",
 		"datetime-local": "change",
 		Canv: "keydown",
@@ -111,7 +112,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return id.value;
 		};
 	}
-	if (["date", "datetime-local"].includes(type)) {
+	if (["time", "date", "datetime-local"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ format = null, dateObject = null } = {}) {
 			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
@@ -174,7 +175,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			}
 			return checkReturn(startIndex, startValue)[0];
 		};
-	} else if (["date", "datetime-local"].includes(type)) {
+	} else if (["time","date", "datetime-local"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
 			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
 			reset = resetValue != null ? resetValue : reset;
