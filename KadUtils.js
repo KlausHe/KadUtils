@@ -30,10 +30,11 @@ export function dbCLStyle(id, loc = 0) {
  * @param {[]} [param0.dbList=[]]
  * @param {string|number} param0.resetValue
  * @param {object} param0.domOpts
+ * @param {string} param0.dataset
  * @returns {string|number}
  */
 
-export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts = {} } = {}) {
+export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts = {}, dataset = [] } = {}) {
 	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
 	const typeAction = {
 		text: "input",
@@ -56,6 +57,9 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	const type = id.type ? id.type : id.nodeName;
 	daEL(id, action || typeAction[type], fn);
 
+	if (dataset.length > 0) {
+		id.dataset[dataset[0]] = dataset[1];
+	}
 	// fill "datalist"
 	if (dbList.length > 0) {
 		id.addEventListener(
@@ -175,7 +179,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			}
 			return checkReturn(startIndex, startValue)[0];
 		};
-	} else if (["time","date", "datetime-local"].includes(type)) {
+	} else if (["time", "date", "datetime-local"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
 			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
 			reset = resetValue != null ? resetValue : reset;
