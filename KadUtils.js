@@ -401,7 +401,6 @@ export const KadFile = {
 		for (let URL of urlArray) {
 			returnData.data.push(`data at: ${URL}`);
 		}
-		// 	error(arr);
 		// returnData.error = "err";
 
 		// try {
