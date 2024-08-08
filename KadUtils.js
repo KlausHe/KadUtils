@@ -322,6 +322,16 @@ export function logChecked(state, ...logText) {
 	}
 	return false;
 }
+export function logCheckedLevel(state, depth, ...logText) {
+	if (!hostDebug()) return;
+	if (!state) return false;
+	const level = typeof depth === "number" ? depth : 1;
+	console.group(`%c${getStackFunctionAt(level)}`, "background: green; color: white");
+	let text = logText.join(" ");
+	if (text) console.log(text);
+	console.groupEnd();
+	return true;
+}
 export function error(...errorText) {
 	if (!hostDebug()) return;
 	console.group(`%c${getStackFunctionAt()}`, "background: red; color: white");
@@ -346,7 +356,10 @@ export function errorCheckedLevel(state, depth, ...errorText) {
 	if (text) console.log(text);
 	throw console.groupEnd();
 }
-
+export function getFavicon(url, size = 15) {
+	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
+	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
+}
 export function deepClone(data) {
 	if (data === null || data === undefined) return data;
 	return JSON.parse(JSON.stringify(data));
@@ -361,6 +374,49 @@ export function copyToClipboard(text, enabled = true) {
 	}
 	navigator.clipboard.writeText(val);
 }
+export const KadFile = {
+	async loadUrlToJSON(url = null, callback = null) {
+		errorCheckedLevel(url == null, 2, "No URL is provided!");
+		logCheckedLevel(callback == null, 2, "No callback is provided!");
+		let urlArray = null;
+		const isArray = Array.isArray(url);
+		if (isArray) {
+			urlArray = url;
+		} else {
+			urlArray = [url];
+		}
+
+		let returnData = { error: null, data: [] };
+		await KadFile.getData(urlArray, returnData);
+		if (!isArray) returnData.data = returnData.data[0];
+
+		if (callback == null) {
+			return returnData;
+		} else {
+			log("CB");
+			callback(returnData.data);
+		}
+	},
+	async getData(urlArray, returnData) {
+		for (let URL of urlArray) {
+			returnData.data.push(`data at: ${URL}`);
+		}
+		// 	error(arr);
+		// returnData.error = "err";
+
+		// try {
+		// 	for await (let URL of urlArray.length) {
+		// 		const response = await fetch(URL);
+		//    const data = await response.json();
+		// 		returnData.data.push(data);
+		// 	}
+		// } catch (err) {
+		// 	error(arr);
+		// 	returnData.error = err;
+		// }
+	},
+};
+
 export const KadCSS = {
 	/**
 	 *
@@ -564,10 +620,6 @@ export const KadInteraction = {
 		}
 	},
 };
-export function getFavicon(url, size = 15) {
-	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
-	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
-}
 export const KadValue = {
 	number(value = 1, { form = null, indicator = false, leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
 		const formating = form == null ? "de-DE" : "," ? "de-DE" : "en-EN";
