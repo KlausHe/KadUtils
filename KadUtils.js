@@ -27,7 +27,7 @@ export function dbCLStyle(id, loc = 0) {
  * @param {string} param0.selGroup
  * @param {number} [param0.selStartIndex=null]
  * @param {string|number} [param0.selStartValue=null]
- * @param {[]} [param0.dbList=[]]
+ * @param {array} [param0.dbList=[]]
  * @param {string|number} param0.resetValue
  * @param {object} param0.domOpts
  * @param {string} param0.dataset
@@ -374,45 +374,61 @@ export function copyToClipboard(text, enabled = true) {
 	}
 	navigator.clipboard.writeText(val);
 }
+
 export const KadFile = {
-	async loadUrlToJSON(url = null, callback = null) {
-		errorCheckedLevel(url == null, 2, "No URL is provided!");
-		logCheckedLevel(callback == null, 2, "No callback is provided!");
-		let urlArray = null;
-		const isArray = Array.isArray(url);
-		if (isArray) {
-			urlArray = url;
+	/**
+	 * @async
+	 * @param {{ variable?: any; url?: any; variableArray?: any; urlArray?: any; callback?: any; errorCallback?: any; }} [param0={}]
+	 * @param {string|null} [param0.variable=null]
+	 * @param {string|null} [param0.url=null]
+	 * @param {array|null} [param0.variableArray=null]
+	 * @param {array|null} [param0.urlArray=null]
+	 * @param {function|null} [param0.callback=null]
+	 * @param {function|null} [param0.errorCallback=null]
+	 * @returns {object}
+	 */
+	async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null } = {}) {
+		errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!");
+		errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly");
+		errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL");
+		errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to retunr the data is provided! use callback or variable");
+
+		let urls = null;
+		let vars = null;
+		if (url != null) {
+			urls = [url];
+			vars = [variable];
 		} else {
-			urlArray = [url];
+			urls = urlArray;
+			vars = variableArray;
 		}
 
-		let returnData = { error: null, data: [] };
-		await KadFile.getData(urlArray, returnData);
-		if (!isArray) returnData.data = returnData.data[0];
+		let urlData = { error: null };
+		for (let i = 0; i < urls.length; i++) {
+			urlData[vars[i]] = urls[i];
+		}
+		await KadFile.getDataURL(urlData);
 
-		if (callback == null) {
-			return returnData;
+		if (callback == null) return urlData;
+		if (urlData.error != null) {
+			errorCallbackallback(urlData.error);
 		} else {
-			log("CB");
-			callback(returnData.data);
+			delete urlData.error;
+			callback(urlData);
 		}
 	},
-	async getData(urlArray, returnData) {
-		for (let URL of urlArray) {
-			returnData.data.push(`data at: ${URL}`);
+	async getDataURL(urlData) {
+		let vars = Object.keys(urlData);
+		try {
+			for await (let variable of vars) {
+				if (variable == "error") continue;
+				const response = await fetch(urlData[variable]);
+				urlData[variable] = await response.json();
+			}
+		} catch (err) {
+			error(err);
+			urlData.error = err;
 		}
-		// returnData.error = "err";
-
-		// try {
-		// 	for await (let URL of urlArray.length) {
-		// 		const response = await fetch(URL);
-		//    const data = await response.json();
-		// 		returnData.data.push(data);
-		// 	}
-		// } catch (err) {
-		// 	error(arr);
-		// 	returnData.error = err;
-		// }
 	},
 };
 
