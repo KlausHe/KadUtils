@@ -431,7 +431,6 @@ export const KadFile = {
 		}
 	},
 };
-
 export const KadCSS = {
 	/**
 	 *
@@ -634,6 +633,11 @@ export const KadInteraction = {
 			canv.redraw();
 		}
 	},
+  removeContextmenu(id){
+    dbID(id).oncontextmenu = function () {
+      return false;
+    };
+  },
 };
 export const KadValue = {
 	number(value = 1, { form = null, indicator = false, leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
