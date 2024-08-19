@@ -33,7 +33,6 @@ export function dbCLStyle(id, loc = 0) {
  * @param {string} param0.dataset
  * @returns {string|number}
  */
-
 export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts = {}, dataset = [] } = {}) {
 	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
 	const typeAction = {
@@ -633,11 +632,11 @@ export const KadInteraction = {
 			canv.redraw();
 		}
 	},
-  removeContextmenu(id){
-    dbID(id).oncontextmenu = function () {
-      return false;
-    };
-  },
+	removeContextmenu(id) {
+		dbID(id).oncontextmenu = function () {
+			return false;
+		};
+	},
 };
 export const KadValue = {
 	number(value = 1, { form = null, indicator = false, leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
@@ -735,14 +734,22 @@ export const KadArray = {
 			else return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
 		});
 	},
-	sortArrayByKey(arr, key, inverse = false, caseSensitive = false) {
+	sortArrayByKey(arr, keys = [], inverse = false, caseSensitive = false) {
+		const keyArray = Array.isArray(keys) ? keys : [keys];
 		let array = Array.from(arr);
+
 		return array.sort((a, b) => {
-			if (typeof a[key] == "number" && typeof b[key] == "number") {
-				return inverse ? b[key] - a[key] : a[key] - b[key];
+			let valueA = a;
+			let valueB = b;
+			for (let key of keyArray) {
+				valueA = valueA[key];
+				valueB = valueB[key];
+			}
+			if (typeof valueA == "number" && typeof valueB == "number") {
+				return inverse ? valueB - valueA : valueA - valueB;
 			} else {
-				const x = caseSensitive ? a[key].toLowerCase() : a[key];
-				const y = caseSensitive ? b[key].toLowerCase() : b[key];
+				const x = caseSensitive ? valueA.toLowerCase() : valueA;
+				const y = caseSensitive ? valueB.toLowerCase() : valueB;
 				const dir = inverse ? 1 : -1;
 				return x < y ? dir : x > y ? dir : 0;
 			}
