@@ -202,6 +202,9 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			return reset;
 		};
 	}
+	//call reset() on startup to initialize reset-Values
+	id.KadReset();
+	// ----
 	function makeSelList({ list = [] } = {}) {
 		KadDOM.clearFirstChild(id);
 		let select = checkReturn(startIndex, startValue);
@@ -288,8 +291,15 @@ export function log(...logText) {
 	if (!hostDebug()) return;
 	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
 	let text = "";
-	if (typeof logText === "object" && logText !== null) text = logText;
-	else text = logText.join(" ");
+	if (typeof logText === "object" && logText !== null) {
+		// const values = [];
+		// for (let key in logText[0]) {
+		// 	values.push(key, logText[0][key]);
+		// }
+		text = logText;
+	} else {
+		text = logText.join(" ");
+	}
 	if (text) console.log(...text);
 	console.groupEnd();
 }
@@ -512,6 +522,10 @@ export const KadDOM = {
 		const type = obj.type ? obj.type : obj.nodeName;
 		if (obj.type == "checkbox") {
 			obj.checked = ph;
+			return ph;
+		}
+		if (obj.type == "button") {
+			obj.textContent = ph;
 			return ph;
 		}
 		if (domOpts != null) {
