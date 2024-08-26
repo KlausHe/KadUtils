@@ -110,7 +110,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		if (action == "focus") return;
 		id.KadGet = function ({ textContent = null, index = null } = {}) {
 			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
-			if (textContent) return id.textContent;
+			if (textContent) return id.options[id.selectedIndex].textContent;
 			if (index) return id.selectedIndex;
 			return id.value;
 		};
@@ -574,7 +574,7 @@ export const KadDOM = {
 		}
 		if (obj == null) return;
 		if (obj.disabled) return;
-		const dir = Number(v);
+		const dir = Number(v) ;
 		if (obj.type == "time") evaluateTime();
 		if (["submit", "number"].includes(obj.type)) evaluateNumber();
 		obj.dispatchEvent(new Event("input"));
@@ -605,7 +605,12 @@ export const KadDOM = {
 			}
 			obj.setAttribute("data-ts", time);
 			const actual = obj.value == "" && obj.placeholder != "" ? Number(obj.placeholder) : Number(obj.value);
-			const num = skip && actual % 5 == 0 ? actual + dir * 5 : actual + dir;
+			let num = 5;
+			if (obj.hasAttribute("step")) {
+				num = actual + dir * Number(obj.step);
+			} else {
+				num = skip && actual % 5 == 0 ? actual + dir * 5 : actual + dir;
+			}
 			const min = obj.hasAttribute("min") && dir < 1 ? Number(obj.min) : null;
 			const max = obj.hasAttribute("max") && dir > 0 ? Number(obj.max) : null;
 			obj.value = KadValue.constrain(num, min, max);
