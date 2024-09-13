@@ -16,25 +16,25 @@ export function dbCLStyle(id, loc = 0) {
 }
 
 /**
- *
- *
  * @export
- * @param {{ id: HTMLElement; action?: string; fn: function; selList?: array; selGroup: any; selStartIndex?: number; selStartValue: any; dbList?: array; resetValue: any; domOpts: any; }} [param0={}]
+ * @param {{ id: HTMLElement; action?: any; fn?: any; selGroup?: {}; selList?: {}; selStartIndex?: number; selStartValue?: string; dbList?: {}; resetValue?: any; animatedText?: { animate: boolean; singleLetter: boolean; delimiter:string}; dateOpts?: { ...; }; domOpts?: {}; dataset?: {}; }} [param0={}]
  * @param {HTMLElement} param0.id
  * @param {string} [param0.action=null]
- * @param {function} param0.fn
- * @param {array} [param0.selList=[]]
- * @param {string} param0.selGroup
+ * @param {function} [param0.fn=null]
+ * @param {object} [param0.selGroup={}]
+ * @param {array} [param0.selList=[]] - Values: 0: text, 1: value, 2: disabled
  * @param {number} [param0.selStartIndex=null]
- * @param {string|number} [param0.selStartValue=null]
+ * @param {string} [param0.selStartValue=null]
  * @param {array} [param0.dbList=[]]
- * @param {string|number} param0.resetValue
- * @param {object} param0.domOpts
- * @param {string} param0.dataset
- * @returns {string|number}
+ * @param {string|number} [param0.resetValue=null]
+ * @param {{ animate: boolean; singleLetter:boolean; delimiter:string }} [param0.animatedText={ animate: null, singleLetter: false, delimiter:"..." }]
+ * @param {{ format: string; dateObject: object; }} [param0.dateOpts={ format: null, dateObject: null }]
+ * @param {object} [param0.domOpts={}]
+ * @param {array} [param0.dataset=[]]
+ * @returns
  */
-export function initEL({ id, action = null, fn, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, dateOpts = { format: null, dateObject: null }, domOpts = {}, dataset = [] } = {}) {
-	errorChecked(typeof id === "string", "Id is a string but should be an HTML-Object");
+export function initEL({ id, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, dataset = [] } = {}) {
+	if (errorChecked(typeof id === "string", "ID is a string but should be an HTML-Object")) return;
 	const typeAction = {
 		text: "input",
 		email: "input",
@@ -51,15 +51,25 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		"datetime-local": "change",
 		Canv: "keydown",
 		DIV: "click",
+		LABEL: "click",
 	};
 
 	const type = id.type ? id.type : id.nodeName;
-	daEL(id, action || typeAction[type], fn);
+	if (fn) dbID(id).addEventListener(action || typeAction[type], fn);
 
+	// save initial parameters
+	let list = selList;
+	let groupList = selGroup;
+	let startIndex = selStartIndex;
+	let startValue = selStartValue;
+	let reset = resetValue;
+	let animated = { animate: null, singleLetter: false, delimiter: "...", timestep: 20, timer: null, textContent: "", ...animatedText };
+	let dateFormating = { format: null, dateObject: null, ...dateOpts };
+
+	// fill "datalist"
 	if (dataset.length > 0) {
 		id.dataset[dataset[0]] = dataset[1];
 	}
-	// fill "datalist"
 	if (dbList.length > 0) {
 		id.addEventListener(
 			"focus",
@@ -68,6 +78,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 				datalist.id = `idDlist_${id.id}`;
 				id.parentNode.appendChild(datalist);
 				id.setAttribute("list", datalist.id);
+				console.log(dbList.length);
 				for (const data of dbList) {
 					datalist.appendChild(new Option(data));
 				}
@@ -77,13 +88,6 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	}
 
 	// fill "Select"
-	let list = selList;
-	let groupList = selGroup;
-	let startIndex = selStartIndex;
-	let startValue = selStartValue;
-	let reset = resetValue;
-	let dateFormating = dateOpts;
-
 	if (list.length > 0) {
 		makeSelList({ list });
 	}
@@ -93,7 +97,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	// add GET function
 	if (["number"].includes(type)) {
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
 			return KadDOM.numberFromInput(id, fail, noPlaceholder);
 		};
@@ -101,7 +105,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	if (["text", "email", "password", "textarea"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
 			return KadDOM.stringFromInput(id, fail, noPlaceholder);
 		};
@@ -109,7 +113,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	if (["select-one", "select"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ textContent = null, index = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			if (textContent) return id.options[id.selectedIndex].textContent;
 			if (index) return id.selectedIndex;
 			return id.value;
@@ -118,7 +122,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	if (["time", "date", "datetime-local"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ format = null, dateObject = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			dateFormating.format = format != null ? format : dateFormating.format;
 			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
@@ -141,7 +145,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 	// add reset-function
 	if (["select-one", "select"].includes(type)) {
 		id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			startIndex = selStartIndex != null ? selStartIndex : startIndex;
 			startValue = selStartValue != null ? selStartValue : startValue;
 			if (selList.length > 0) {
@@ -180,7 +184,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		};
 	} else if (["time", "date", "datetime-local"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			dateFormating.format = format != null ? format : dateFormating.format;
@@ -196,14 +200,89 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		};
 	} else {
 		id.KadReset = function ({ resetValue = null } = {}) {
-			errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!");
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			return reset;
 		};
 	}
-	//call reset() on startup to initialize reset-Values
-	id.KadReset();
+	id.KadReset(); //call reset() on startup to initialize reset-Values
+
+	if (["DIV", "LABEL"].includes(type)) {
+		id.style.cursor = "not-allowed";
+		animated.textContent;
+		id.KadSetText = function (text = null) {
+			if (text) animated.textContent = text;
+			id.addEventListener("click", toggleTetxAnimationText, { once: true });
+			if (!animated.animate) {
+				id.textContent = animated.textContent;
+			} else {
+				if (animated.timer != null) clearTimeout(animated.timer);
+				animated.timer = null;
+				typingAnimation("textContent");
+			}
+		};
+		id.KadSetHTML = function (text = null) {
+			if (text) animated.textContent = text;
+			id.addEventListener("click", toggleTetxAnimationHtml, { once: true });
+			if (!animated.animate) {
+				id.innerHTML = animated.textContent;
+			} else {
+				if (animated.timer != null) clearTimeout(animated.timer);
+				animated.timer = null;
+				typingAnimation("innerHTML");
+			}
+		};
+	}
+	// ----
+	function typingAnimation(setType) {
+		let writtenText = "";
+		let tokenIndex = 0;
+		const tokenlist = animated.textContent;
+		function newToken() {
+			let finished = false;
+			writtenText = writtenText.slice(0, -1 * animated.delimiter.length);
+			const thisToken = tokenlist[tokenIndex];
+			let nextTime = animated.timestep;
+			if (new RegExp(/\W+/).test(thisToken)) {
+				nextTime = animated.timestep * 1.5;
+			}
+			if (animated.singleLetter) {
+				writtenText += `${thisToken}`;
+				tokenIndex++;
+			} else {
+				const upcommingList = tokenlist.slice(tokenIndex);
+				const jumpLength = upcommingList.indexOf(" ");
+				if (jumpLength == -1) {
+					finished = true;
+				} else {
+					const word = upcommingList.slice(0, jumpLength);
+					tokenIndex += jumpLength + 1;
+					nextTime = animated.timestep * jumpLength * 0.75;
+					writtenText += `${word} `;
+				}
+			}
+			if (tokenIndex >= tokenlist.length - 1) finished = true;
+			if (!finished) {
+				writtenText += `${animated.delimiter}`;
+				animated.timer = setTimeout(newToken, nextTime);
+			}
+			idDiv_News_Text[setType] = writtenText;
+			KadDOM.scrollToBottom(idDiv_News_Text);
+		}
+		newToken();
+	}
+	function toggleTetxAnimationText() {
+		animated.animate = !animated.animate;
+		clearTimeout(animated.timer);
+		id.KadSetText();
+	}
+	function toggleTetxAnimationHtml() {
+		animated.animate = !animated.animate;
+		clearTimeout(animated.timer);
+		id.KadSetHTML();
+	}
+
 	// ----
 	function makeSelList({ list = [] } = {}) {
 		KadDOM.clearFirstChild(id);
@@ -211,6 +290,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		for (let data of list) {
 			let d = Array.isArray(data) ? data : [data];
 			const opt = new Option(...d);
+			opt.disabled = d.length > 2 ? d[2] : false;
 			id.appendChild(opt);
 			if (select[1] == "value" && select[0] == d[1]) {
 				opt.selected = true;
@@ -232,6 +312,7 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 			for (let data of list) {
 				let d = Array.isArray(data) ? data : [data];
 				const opt = new Option(...d);
+				opt.disabled = d.length > 2 ? d[2] : false;
 				optG.appendChild(opt);
 				if (select[1] == "value" && select[0] == d[1]) {
 					opt.selected = true;
@@ -259,7 +340,6 @@ export function initEL({ id, action = null, fn, selGroup = {}, selList = [], sel
 		if (typeString != "object") return true;
 	}
 }
-
 export function daEL(id, type, fn) {
 	dbID(id).addEventListener(type, fn);
 }
@@ -274,13 +354,18 @@ function getStackFunctionAt(level = 1) {
 	const levelString = Error().stack.split(/\r?\n|\r|\n/g);
 	const l = Math.min(Math.max(0, level + 1), levelString.length - 2);
 	let arr = levelString[l].split(/[@://]{1,}/);
-	const data = {
-		function: `${arr[0]}()`,
-		folder: arr[4],
-		file: arr[5],
-		line: arr[6],
-	};
-	return `${data.function} ${data.folder}/${data.file}: ${data.line}`;
+	const fileIndex = arr.findIndex((e) => e.includes(".js"));
+
+	let text = "";
+	let path = "/";
+	for (let i = 4; i < fileIndex; i++) {
+		path += `${arr[i]}/`;
+	}
+	text += `${path}`;
+	text += `${arr[fileIndex]}: `;
+	text += `${arr[0]}() `;
+	text += `Ln:${arr[fileIndex + 1]}\n`;
+	return text;
 }
 /**
  *
@@ -291,16 +376,24 @@ export function log(...logText) {
 	if (!hostDebug()) return;
 	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
 	let text = "";
-	if (typeof logText === "object" && logText !== null) {
-		// const values = [];
-		// for (let key in logText[0]) {
-		// 	values.push(key, logText[0][key]);
-		// }
-		text = logText;
-	} else {
-		text = logText.join(" ");
-	}
+	if (typeof logText === "object" && logText !== null) text = logText;
+	else text = logText.join(" ");
 	if (text) console.log(...text);
+	console.groupEnd();
+}
+/**
+ *
+ * @param  {...any} logText
+ * @returns
+ */
+export function logLink(...logText) {
+	if (!hostDebug()) return;
+	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
+	let text = "";
+	if (typeof logText === "object" && logText !== null) text = logText;
+	else text = logText.join(" ");
+	if (text) console.log(...text);
+	window.open(getStackFunctionAt().file);
 	console.groupEnd();
 }
 /**
@@ -313,7 +406,7 @@ export function log(...logText) {
 export function logLevel(depth, ...logText) {
 	if (!hostDebug()) return;
 	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level)}`, "background: white; color: black");
+	console.group(`%c${getStackFunctionAt(level).text}`, "background: white; color: black");
 	let text = "";
 	if (typeof logText === "object" && logText !== null) text = logText;
 	else text = logText.join(" ");
@@ -322,20 +415,18 @@ export function logLevel(depth, ...logText) {
 }
 export function logChecked(state, ...logText) {
 	if (!hostDebug()) return;
-	if (state) {
-		console.group(`%c${getStackFunctionAt()}`, "background: green; color: white");
-		let text = logText.join(" ");
-		if (text) console.log(text);
-		console.groupEnd();
-		return true;
-	}
-	return false;
+	if (!state) return false;
+	console.group(`%c${getStackFunctionAt()}`, "background: green; color: white");
+	let text = logText.join(" ");
+	if (text) console.log(text);
+	console.groupEnd();
+	return true;
 }
 export function logCheckedLevel(state, depth, ...logText) {
 	if (!hostDebug()) return;
 	if (!state) return false;
 	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level)}`, "background: green; color: white");
+	console.group(`%c${getStackFunctionAt(level).text}`, "background: green; color: white");
 	let text = logText.join(" ");
 	if (text) console.log(text);
 	console.groupEnd();
@@ -346,24 +437,35 @@ export function error(...errorText) {
 	console.group(`%c${getStackFunctionAt()}`, "background: red; color: white");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
-	throw console.groupEnd();
+	console.groupEnd();
+}
+export function errorLevel(depth, ...errorText) {
+	if (!hostDebug()) return;
+	const level = typeof depth === "number" ? depth : 1;
+	console.group(`%c${getStackFunctionAt(level).text}`, "background: red; color: black");
+	let text = errorText.join(" ");
+	if (text) console.log(text);
+	console.groupEnd();
+	return true;
 }
 export function errorChecked(state, ...errorText) {
-	if (!hostDebug()) return;
-	if (!state) return;
+	if (!hostDebug()) return false;
+	if (!state) return false;
 	console.group(`%c${getStackFunctionAt()}`, "background: red; color: black");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
-	throw console.groupEnd();
+	console.groupEnd();
+	return true;
 }
 export function errorCheckedLevel(state, depth, ...errorText) {
 	if (!hostDebug()) return;
-	if (!state) return;
+	if (!state) return false;
 	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level)}`, "background: red; color: black");
+	console.group(`%c${getStackFunctionAt(level).text}`, "background: red; color: black");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
-	throw console.groupEnd();
+	console.groupEnd();
+	return true;
 }
 export function getFavicon(url, size = 15) {
 	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
@@ -397,10 +499,10 @@ export const KadFile = {
 	 * @returns {object}
 	 */
 	async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null } = {}) {
-		errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!");
-		errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly");
-		errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL");
-		errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to retunr the data is provided! use callback or variable");
+		if (errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
+		if (errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
+		if (errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
+		if (errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to retunr the data is provided! use callback or variable")) return;
 
 		let urls = null;
 		let vars = null;
@@ -435,7 +537,6 @@ export const KadFile = {
 				urlData[variable] = await response.json();
 			}
 		} catch (err) {
-			error(err);
 			urlData.error = err;
 		}
 	},
@@ -472,6 +573,14 @@ export const KadDOM = {
 	scrollToTop(id) {
 		dbID(id).scroll({
 			top: 0,
+			behavior: "smooth",
+			block: "nearest",
+			inline: "start", //start
+		});
+	},
+	scrollToBottom(id) {
+		dbID(id).scroll({
+			top: dbID(id).scrollHeight,
 			behavior: "smooth",
 			block: "nearest",
 			inline: "start", //start
@@ -534,7 +643,7 @@ export const KadDOM = {
 			}
 		}
 		if (ph != null) {
-			if (["submit", "button", "DIV"].includes(type)) {
+			if (["submit", "button", "DIV", "LABEL"].includes(type)) {
 				obj.textContent = ph;
 			} else if (type == "date") {
 				obj.value = ph;
@@ -574,7 +683,7 @@ export const KadDOM = {
 		}
 		if (obj == null) return;
 		if (obj.disabled) return;
-		const dir = Number(v) ;
+		const dir = Number(v);
 		if (obj.type == "time") evaluateTime();
 		if (["submit", "number"].includes(obj.type)) evaluateNumber();
 		obj.dispatchEvent(new Event("input"));
