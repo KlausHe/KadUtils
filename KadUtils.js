@@ -17,7 +17,7 @@ export function dbCLStyle(id, loc = 0) {
 
 /**
  * @export
- * @param {{ id: HTMLElement; action?: any; fn?: any; selGroup?: {}; selList?: {}; selStartIndex?: number; selStartValue?: string; dbList?: {}; resetValue?: any; animatedText?: { animate: boolean; singleLetter: boolean; delimiter:string}; dateOpts?: { ...; }; domOpts?: {}; dataset?: {}; }} [param0={}]
+ * @param {{ id: HTMLElement; action?: string; fn?: function; selGroup?: {}; selList?: {}; selStartIndex?: number; selStartValue?: string; dbList?: {}; resetValue?: any; animatedText?: { animate: boolean; singleLetter: boolean; delimiter:string}; dateOpts?: { ...; }; domOpts?: {}; dataset?: {}; }} [param0={}]
  * @param {HTMLElement} param0.id
  * @param {string} [param0.action=null]
  * @param {function} [param0.fn=null]
@@ -209,24 +209,25 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	id.KadReset(); //call reset() on startup to initialize reset-Values
 
 	if (["DIV", "LABEL"].includes(type)) {
-		id.style.cursor = "not-allowed";
-		animated.textContent;
+    animated.textContent;
 		id.KadSetText = function (text = null) {
-			if (text) animated.textContent = text;
+      if (text) animated.textContent = text;
+      id.style.cursor = "pointer";
 			id.addEventListener("click", toggleTetxAnimationText, { once: true });
 			if (!animated.animate) {
-				id.textContent = animated.textContent;
+        id.textContent = animated.textContent;
 			} else {
-				if (animated.timer != null) clearTimeout(animated.timer);
+        if (animated.timer != null) clearTimeout(animated.timer);
 				animated.timer = null;
 				typingAnimation("textContent");
 			}
 		};
 		id.KadSetHTML = function (text = null) {
-			if (text) animated.textContent = text;
+      if (text) animated.textContent = text;
+      id.style.cursor = "pointer";
 			id.addEventListener("click", toggleTetxAnimationHtml, { once: true });
 			if (!animated.animate) {
-				id.innerHTML = animated.textContent;
+        id.innerHTML = animated.textContent;
 			} else {
 				if (animated.timer != null) clearTimeout(animated.timer);
 				animated.timer = null;
@@ -489,13 +490,13 @@ export function copyToClipboard(text, enabled = true) {
 export const KadFile = {
 	/**
 	 * @async
-	 * @param {{ variable?: any; url?: any; variableArray?: any; urlArray?: any; callback?: any; errorCallback?: any; }} [param0={}]
-	 * @param {string|null} [param0.variable=null]
-	 * @param {string|null} [param0.url=null]
-	 * @param {array|null} [param0.variableArray=null]
-	 * @param {array|null} [param0.urlArray=null]
-	 * @param {function|null} [param0.callback=null]
-	 * @param {function|null} [param0.errorCallback=null]
+	 * @param {{ variable?: string; url?: string; variableArray?: array; urlArray?: array; callback?: function; errorCallback?: function; }} [param0={}]
+	 * @param {string} [param0.variable=null]
+	 * @param {string} [param0.url=null]
+	 * @param {array} [param0.variableArray=null]
+	 * @param {array} [param0.urlArray=null]
+	 * @param {function} [param0.callback=null]
+	 * @param {function} [param0.errorCallback=null]
 	 * @returns {object}
 	 */
 	async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null } = {}) {
@@ -504,15 +505,8 @@ export const KadFile = {
 		if (errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
 		if (errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to retunr the data is provided! use callback or variable")) return;
 
-		let urls = null;
-		let vars = null;
-		if (url != null) {
-			urls = [url];
-			vars = [variable];
-		} else {
-			urls = urlArray;
-			vars = variableArray;
-		}
+		let urls = url != null ? [url] : urlArray;
+		let vars = url != null ? [variable] : variableArray;
 
 		let urlData = { error: null };
 		for (let i = 0; i < urls.length; i++) {
