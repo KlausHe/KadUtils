@@ -70,22 +70,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	if (dataset.length > 0) {
 		id.dataset[dataset[0]] = dataset[1];
 	}
-	if (dbList.length > 0) {
-		id.addEventListener(
-			"focus",
-			() => {
-				const datalist = document.createElement("datalist");
-				datalist.id = `idDlist_${id.id}`;
-				id.parentNode.appendChild(datalist);
-				id.setAttribute("list", datalist.id);
-				console.log(dbList.length);
-				for (const data of dbList) {
-					datalist.appendChild(new Option(data));
-				}
-			},
-			{ once: true }
-		);
-	}
+	makeDBlist(dbList);
 
 	// fill "Select"
 	if (list.length > 0) {
@@ -198,6 +183,14 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 			}
 			return returnValue;
 		};
+	} else if (["text", "number"].includes(type)) {
+		id.KadReset = function ({ resetValue = null, dbList = [] } = {}) {
+			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+			reset = resetValue != null ? resetValue : reset;
+			KadDOM.resetInput(id, reset, domOpts);
+			if (dbList.length > 0) makeDBlist(dbList);
+			return reset;
+		};
 	} else {
 		id.KadReset = function ({ resetValue = null } = {}) {
 			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
@@ -209,25 +202,25 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	id.KadReset(); //call reset() on startup to initialize reset-Values
 
 	if (["DIV", "LABEL"].includes(type)) {
-    animated.textContent;
+		animated.textContent;
 		id.KadSetText = function (text = null) {
-      if (text) animated.textContent = text;
-      id.style.cursor = "pointer";
+			if (text) animated.textContent = text;
+			id.style.cursor = "pointer";
 			id.addEventListener("click", toggleTetxAnimationText, { once: true });
 			if (!animated.animate) {
-        id.textContent = animated.textContent;
+				id.textContent = animated.textContent;
 			} else {
-        if (animated.timer != null) clearTimeout(animated.timer);
+				if (animated.timer != null) clearTimeout(animated.timer);
 				animated.timer = null;
 				typingAnimation("textContent");
 			}
 		};
 		id.KadSetHTML = function (text = null) {
-      if (text) animated.textContent = text;
-      id.style.cursor = "pointer";
+			if (text) animated.textContent = text;
+			id.style.cursor = "pointer";
 			id.addEventListener("click", toggleTetxAnimationHtml, { once: true });
 			if (!animated.animate) {
-        id.innerHTML = animated.textContent;
+				id.innerHTML = animated.textContent;
 			} else {
 				if (animated.timer != null) clearTimeout(animated.timer);
 				animated.timer = null;
@@ -283,8 +276,23 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		clearTimeout(animated.timer);
 		id.KadSetHTML();
 	}
-
-	// ----
+	function makeDBlist(dbList) {
+		if (dbList.length > 0) {
+			id.addEventListener(
+				"focus",
+				() => {
+					const datalist = document.createElement("datalist");
+					datalist.id = `idDlist_${id.id}`;
+					id.parentNode.appendChild(datalist);
+					id.setAttribute("list", datalist.id);
+					for (const data of dbList) {
+						datalist.appendChild(new Option(data));
+					}
+				},
+				{ once: true }
+			);
+		}
+	}
 	function makeSelList({ list = [] } = {}) {
 		KadDOM.clearFirstChild(id);
 		let select = checkReturn(startIndex, startValue);
@@ -299,7 +307,6 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		}
 		if (select[1] == "index") id.selectedIndex = select[0];
 	}
-
 	function makeGroupList({ groupList = {} } = {}) {
 		KadDOM.clearFirstChild(id);
 		let select = checkReturn(startIndex, startValue);
@@ -322,7 +329,6 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 			if (select[1] == "index") id.selectedIndex = select[0];
 		}
 	}
-
 	function checkReturn(startIndex, startValue) {
 		let indexNull = startIndex === null;
 		let valueNull = startValue === null;
@@ -468,6 +474,7 @@ export function errorCheckedLevel(state, depth, ...errorText) {
 	console.groupEnd();
 	return true;
 }
+
 export function getFavicon(url, size = 15) {
 	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
 	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
