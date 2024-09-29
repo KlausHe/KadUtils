@@ -66,10 +66,17 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	let animated = { animate: null, singleLetter: false, delimiter: "...", timestep: 20, timer: null, textContent: "", ...animatedText };
 	let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
-	// fill "datalist"
+	// fill "dataset"
 	if (dataset.length > 0) {
-		id.dataset[dataset[0]] = dataset[1];
+		if (Array.isArray(dataset[0])) {
+			for (let set of dataset) {
+				id.dataset[set[0]] = set[1];
+			}
+		} else {
+			id.dataset[dataset[0]] = dataset[1];
+		}
 	}
+	// fill "datalist"
 	makeDBlist(dbList);
 
 	// fill "Select"
@@ -1423,7 +1430,7 @@ export const KadColor = {
 		let rgb = RGB.length === 1 ? [RGB[0], RGB[0], RGB[0]] : RGB;
 		let hex = "#";
 		rgb.forEach((c) => {
-			let tempHex = Number(c).toString(16);
+			let tempHex = Number(c).toString(16).toUpperCase();
 			hex += tempHex.length < 2 ? `0${tempHex}` : tempHex;
 		});
 		return hex;
