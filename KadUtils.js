@@ -91,7 +91,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
 			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
-			return KadDOM.numberFromInput(id, fail, noPlaceholder);
+			return KadDOM.numberFromInput({ id, failSafeVal: fail, noPlaceholder });
 		};
 	}
 	if (["text", "email", "password", "textarea"].includes(type)) {
@@ -99,7 +99,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
 			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
-			return KadDOM.stringFromInput(id, fail, noPlaceholder);
+			return KadDOM.stringFromInput({ id, failSafeVal: fail, noPlaceholder });
 		};
 	}
 	if (["select-one", "select"].includes(type)) {
@@ -573,8 +573,8 @@ export const KadCSS = {
 		const valConverted = valOrig.replace(/s|px|rem/g, "");
 		return Number(valConverted);
 	},
-	setRoot(object, value, dim = "") {
-		document.styleSheets[0].cssRules[0].style.setProperty(`--${object}`, `${value}${dim}`);
+	setRoot({ variable, value, dim = "" } = {}) {
+		document.styleSheets[0].cssRules[0].style.setProperty(`--${variable}`, `${value}${dim}`);
 	},
 };
 export const KadDOM = {
@@ -733,14 +733,14 @@ export const KadDOM = {
 			obj.value = KadValue.constrain(num, min, max);
 		}
 	},
-	numberFromInput(id, failSafeVal = null, noPlaceholder = null) {
+	numberFromInput({ id, failSafeVal = null, noPlaceholder = null } = {}) {
 		const obj = dbID(id);
 		if (!isNaN(obj.valueAsNumber)) return obj.valueAsNumber;
 		if (failSafeVal != null) return failSafeVal;
 		if (noPlaceholder != null) return null;
 		return Number(obj.placeholder);
 	},
-	stringFromInput(id, failSafeVal = null, noPlaceholder = true) {
+	stringFromInput({ id, failSafeVal = null, noPlaceholder = true } = {}) {
 		const obj = dbID(id);
 		const value = obj.value.trim();
 		if (value != "") return obj.value;
@@ -826,12 +826,12 @@ export const KadValue = {
 	},
 };
 export const KadArray = {
-	createArray(x, y = null, fillNum = null) {
-		if (y == null && fillNum == null) return new Array(x).fill(0).map((n, i) => i);
-		if (y == null && fillNum != null) return new Array(x).fill(fillNum);
+	createArray({ x, y = null, fillNumber = null } = {}) {
+		if (y == null && fillNumber == null) return new Array(x).fill(0).map((n, i) => i);
+		if (y == null && fillNumber != null) return new Array(x).fill(fillNumber);
 		let arrX = new Array(x);
 		for (let i = 0; i < arrX.length; i++) {
-			arrX[i] = fillNum == null ? (arrX[i] = new Array(y)) : new Array(y).fill(fillNum);
+			arrX[i] = fillNumber == null ? (arrX[i] = new Array(y)) : new Array(y).fill(fillNumber);
 		}
 		return arrX;
 	},
@@ -870,11 +870,10 @@ export const KadArray = {
 			else return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
 		});
 	},
-	sortArrayByKey(arr, keys = [], inverse = false, caseSensitive = false) {
+	sortArrayByKey({ array, keys = [], inverse = false, caseSensitive = false } = {}) {
 		const keyArray = Array.isArray(keys) ? keys : [keys];
-		let array = Array.from(arr);
-
-		return array.sort((a, b) => {
+		let arr = Array.from(array);
+		return arr.sort((a, b) => {
 			let valueA = a;
 			let valueB = b;
 			for (let key of keyArray) {
@@ -1152,7 +1151,7 @@ export const KadTable = {
 			const child = document.createElement("div");
 			opt.type = "Colbox";
 			child.classList.add("coloredBox");
-			child.style.background = KadColor.formatAsCSS(opt.color, "HSL");
+			child.style.background = KadColor.formatAsCSS({ colorArray: opt.color, type: "HSL" });
 			KadTable.UIOptions(child, opt);
 			return child;
 		},
@@ -1262,44 +1261,42 @@ export const KadColor = {
 		HSB: { postfix: ["", "%", "%"], stateRange: [0, 0, 100] },
 		CMYK: { postfix: ["%", "%", "%", "%"], stateRange: [0, 0, 0, 100] },
 	},
-	normalize(colArr) {
-		return [colArr[0] / 255, colArr[1] / 255, colArr[2] / 255];
+	normalize(colorArray) {
+		return [colorArray[0] / 255, colorArray[1] / 255, colorArray[2] / 255];
 	},
-	colAsArray(colArr = [], cFrom = "", cTo = "") {
-		let colFrom = cFrom.toUpperCase();
-		const colTo = cTo.toUpperCase();
+	colAsArray({ colorArray, from = "HSL", to = "RGB" } = {}) {
+		let colFrom = from.toUpperCase();
+		const colTo = to.toUpperCase();
 		if (!Object.keys(this.types).includes(colFrom)) return;
 		if (!Object.keys(this.types).includes(colTo)) return;
-		let c = colArr;
+		let c = colorArray;
 		if (colFrom != "RGB" && colTo != "RGB") {
-			c = this[`${colFrom}toRGB`](colArr);
+			c = this[`${colFrom}toRGB`](colorArray);
 			colFrom = "RGB";
 		}
 		return this[`${colFrom}to${colTo}`](c);
 	},
-	colAsString(colArr = [], cFrom = "", cTo = "") {
-		const c = this.colAsArray(colArr, cFrom, cTo);
-		return this.formatAsString(c, cTo);
+	colAsString({ colorArray, from = "HSL", to = "RGB" } = {}) {
+		const c = this.colAsArray({ colorArray, from, to });
+		return this.formatAsString({ colorArray: c, type: to });
 	},
-	colAsCSS(colArr = [], cFrom = "", cTo = "") {
-		const c = this.colAsArray(colArr, cFrom, cTo);
-		return this.formatAsCSS(c, cTo);
+	colAsCSS({ colorArray, from = "HSL", to = "RGB" } = {}) {
+		const c = this.colAsArray({ colorArray, from, to });
+		return this.formatAsCSS({ colorArray: c, type: to });
 	},
-
-	stateAsBool(colArr = [], type = "HSL", invert = false) {
-		let RGB = type == "RGB" ? colArr : this[`${type}toRGB`](colArr);
+	stateAsBool({ colorArray, type = "HSL", invert = false } = {}) {
+		let RGB = type == "RGB" ? colorArray : this[`${type}toRGB`](colorArray);
 		let inv = type == "CMYK" ? !invert : invert;
 		let uicolors = this.normalize(RGB);
 		let c = uicolors.map((col) => {
 			if (col <= 0.03928) return col / 12.92;
 			return Math.pow((col + 0.055) / 1.055, 2.4);
 		});
-
 		const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 		return Number(inv ? !(L < 0.179) : L < 0.179);
 	},
-	stateAsArray(colArr = [], type = "HSL", invert = false) {
-		const state = this.stateAsBool(colArr, type, invert);
+	stateAsArray({ colorArray, type = "HSL", invert = false } = {}) {
+		const state = this.stateAsBool({ colorArray, type, invert });
 		let c = [];
 		const range = KadColor.types[type.toUpperCase()].stateRange;
 		for (let i = 0; i < range.length; i++) {
@@ -1307,39 +1304,37 @@ export const KadColor = {
 		}
 		return c;
 	},
-	stateAsString(colArr = [], type = "HSL", invert = false) {
-		let c = this.stateAsArray(colArr, type, invert);
-		return this.formatAsString(c, type);
+	stateAsString({ colorArray, type = "HSL", invert = false } = {}) {
+		let c = this.stateAsArray({ colorArray, type, invert });
+		return this.formatAsString({ colorArray: c, type });
 	},
-	stateAsCSS(colArr = [], type = "HSL", invert = false) {
-		let c = this.stateAsArray(colArr, type, invert);
-		return this.formatAsCSS(c, type);
+	stateAsCSS({ colorArray, type = "HSL", invert = false } = {}) {
+		let c = this.stateAsArray({ colorArray, type, invert });
+		return this.formatAsCSS({ colorArray: c, type });
 	},
-
-	formatAsString(colArray, type = "HSL") {
-		if (typeof colArray === "string") return `${colArray.toUpperCase()}`;
+	formatAsString({ colorArray, type = "HSL" } = {}) {
+		if (typeof colorArray === "string") return `${colorArray.toUpperCase()}`;
 		const typePostfix = KadColor.types[type].postfix;
 		let retString = "";
-		for (let i = 0; i < colArray.length; i++) {
-			retString += i > typePostfix.length ? ` / ${colArray[i]}` : ` ${colArray[i]}${typePostfix[i]}`;
+		for (let i = 0; i < colorArray.length; i++) {
+			retString += i > typePostfix.length ? ` / ${colorArray[i]}` : ` ${colorArray[i]}${typePostfix[i]}`;
 		}
 		return retString;
 	},
-	formatAsCSS(colArray, type = "HSL") {
-		if (typeof colArray === "string") return `${colArray.toUpperCase()}`;
+	formatAsCSS({ colorArray, type = "HSL" } = {}) {
+		if (typeof colorArray === "string") return `${colorArray.toUpperCase()}`;
 		const typePostfix = KadColor.types[type].postfix;
 		let retString = `${type.toLowerCase()}(`;
-		for (let i = 0; i < colArray.length; i++) {
+		for (let i = 0; i < colorArray.length; i++) {
 			if (i > typePostfix.length) {
-				retString += ` / ${colArray[i]}`;
+				retString += ` / ${colorArray[i]}`;
 			} else {
-				retString += ` ${colArray[i]}${typePostfix[i]}`;
+				retString += ` ${colorArray[i]}${typePostfix[i]}`;
 			}
 		}
 		retString += ")";
 		return retString;
 	},
-
 	HEXtoRGB(HEX) {
 		let rgb = [];
 		const hex = HEX.charAt(0) === "#" ? HEX.substring(1, 7) : HEX;
