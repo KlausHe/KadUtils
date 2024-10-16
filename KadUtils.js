@@ -369,7 +369,6 @@ function getStackFunctionAt(level = 1) {
 	const l = Math.min(Math.max(0, level + 1), levelString.length - 2);
 	let arr = levelString[l].split(/[@://]{1,}/);
 	const fileIndex = arr.findIndex((e) => e.includes(".js"));
-
 	let text = "";
 	let path = "/";
 	for (let i = 4; i < fileIndex; i++) {
@@ -379,7 +378,7 @@ function getStackFunctionAt(level = 1) {
 	text += `${arr[fileIndex]}: `;
 	text += `${arr[0]}() `;
 	text += `Ln:${arr[fileIndex + 1]}\n`;
-	return text;
+	return { text };
 }
 /**
  *
@@ -388,26 +387,11 @@ function getStackFunctionAt(level = 1) {
  */
 export function log(...logText) {
 	if (!hostDebug()) return;
-	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
+	console.group(`%c${getStackFunctionAt().text}`, "background: white; color: black");
 	let text = "";
 	if (typeof logText === "object" && logText !== null) text = logText;
 	else text = logText.join(" ");
 	if (text) console.log(...text);
-	console.groupEnd();
-}
-/**
- *
- * @param  {...any} logText
- * @returns
- */
-export function logLink(...logText) {
-	if (!hostDebug()) return;
-	console.group(`%c${getStackFunctionAt()}`, "background: white; color: black");
-	let text = "";
-	if (typeof logText === "object" && logText !== null) text = logText;
-	else text = logText.join(" ");
-	if (text) console.log(...text);
-	window.open(getStackFunctionAt().file);
 	console.groupEnd();
 }
 /**
@@ -430,7 +414,7 @@ export function logLevel(depth, ...logText) {
 export function logChecked(state, ...logText) {
 	if (!hostDebug()) return;
 	if (!state) return false;
-	console.group(`%c${getStackFunctionAt()}`, "background: green; color: white");
+	console.group(`%c${getStackFunctionAt().text}`, "background: green; color: white");
 	let text = logText.join(" ");
 	if (text) console.log(text);
 	console.groupEnd();
@@ -448,7 +432,7 @@ export function logCheckedLevel(state, depth, ...logText) {
 }
 export function error(...errorText) {
 	if (!hostDebug()) return;
-	console.group(`%c${getStackFunctionAt()}`, "background: red; color: white");
+	console.group(`%c${getStackFunctionAt().text}`, "background: red; color: white");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
 	console.groupEnd();
@@ -465,7 +449,7 @@ export function errorLevel(depth, ...errorText) {
 export function errorChecked(state, ...errorText) {
 	if (!hostDebug()) return false;
 	if (!state) return false;
-	console.group(`%c${getStackFunctionAt()}`, "background: red; color: black");
+	console.group(`%c${getStackFunctionAt().text}`, "background: red; color: black");
 	let text = errorText.join(" ");
 	if (text) console.log(text);
 	console.groupEnd();
@@ -578,8 +562,9 @@ export const KadCSS = {
 	},
 };
 export const KadDOM = {
-	scrollToTop(id) {
-		dbID(id).scroll({
+	scrollToTop(id = null) {
+		let ID = id == null ? document.documentElement : id;
+		dbID(ID).scroll({
 			top: 0,
 			behavior: "smooth",
 			block: "nearest",
@@ -830,8 +815,14 @@ export const KadArray = {
 		if (y == null && fillNumber == null) return new Array(x).fill(0).map((n, i) => i);
 		if (y == null && fillNumber != null) return new Array(x).fill(fillNumber);
 		let arrX = new Array(x);
-		for (let i = 0; i < arrX.length; i++) {
-			arrX[i] = fillNumber == null ? (arrX[i] = new Array(y)) : new Array(y).fill(fillNumber);
+		if (fillNumber == null) {
+			for (let i = 0; i < arrX.length; i++) {
+				arrX[i] = arrX[i] = new Array(y);
+			}
+		} else {
+			for (let i = 0; i < arrX.length; i++) {
+				arrX[i] = new Array(y).fill(fillNumber);
+			}
 		}
 		return arrX;
 	},
