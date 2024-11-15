@@ -339,7 +339,6 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	function checkReturn(startIndex, startValue) {
 		let indexNull = startIndex === null;
 		let valueNull = startValue === null;
-
 		if (indexNull && valueNull) {
 			return [0, "index"];
 		} else if (!indexNull && valueNull) {
@@ -501,7 +500,7 @@ export const KadFile = {
 		if (errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
 		if (errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
 		if (errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
-		if (errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to retunr the data is provided! use callback or variable")) return;
+		if (errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to return the data is provided! use callback or variable")) return;
 
 		let urls = url != null ? [url] : urlArray;
 		let vars = url != null ? [variable] : variableArray;
@@ -514,7 +513,11 @@ export const KadFile = {
 
 		if (callback == null) return urlData;
 		if (urlData.error != null) {
-			errorCallbackallback(urlData.error);
+			if (errorCallback == null) {
+				log("no ErrorCallback() for", url, "but an Error occured!");
+				return;
+			}
+			errorCallback(urlData.error);
 		} else {
 			delete urlData.error;
 			callback(urlData);
@@ -1017,6 +1020,286 @@ export const KadString = {
 	},
 };
 export const KadTable = {
+	generateHeaderFromHeader(_header) {
+		const header = Array.isArray(_header) ? { 0: _header } : _header;
+		let headerData = {};
+		for (let [key, value] of Object.entries(header)) {
+			let data = [];
+			for (let i = 0; i < value.length; i++) {
+				const head = header[key][i];
+				data.push({
+					type: head.type || null,
+					data: head.data || null,
+					settings: head.settings || null,
+					description: head.description || null,
+					colSpan: head.colSpan || null,
+					rowSpan: head.rowSpan || null,
+					skip: head.skip || null,
+				});
+				if (head.colSpan) {
+					for (let j = 0; j < head.colSpan - 1; j++) {
+						data.push({ skip: true });
+					}
+				}
+			}
+			headerData[key] = data;
+		}
+		return { headerData };
+	},
+	generateHeaderFromBody(body) {
+		let headerData = [];
+		for (let i = 0; i < body.length; i++) {
+			const head = body[i].header;
+			if (errorChecked(head == undefined || head.skip, 'No skipping in "body-Header" configuration. Use the Header-Object! ')) return;
+			headerData.push({
+				type: head.type || null,
+				data: head.data || null,
+				settings: head.settings || null,
+				description: head.description || null,
+			});
+		}
+		headerData = { 0: headerData };
+		return { headerData };
+	},
+	createHTMLGrid({ id = null, header = null, body = null } = {}) {
+		if (errorChecked(id == null)) return;
+		if (errorChecked(body != null && !Array.isArray(body), "Header has to be an Array!")) return;
+		const grid = dbID(id);
+		grid.innerHTML = "";
+		grid.classList.add("cl_gridTable");
+
+		let headerData = [];
+		let headerAvailable = false;
+		if (header != null) {
+			headerAvailable = true;
+			const data = this.generateHeaderFromHeader(header);
+			headerData = data.headerData;
+		} else if (body != null && body.some((item) => item.hasOwnProperty("header"))) {
+			headerAvailable = true;
+			const data = this.generateHeaderFromBody(body);
+			headerData = data.headerData;
+		}
+		const headerRowCount = objectLength(headerData);
+
+		let rows = null;
+		let columns = null;
+		if (body) {
+			rows = body[0].data.length;
+			columns = body.length;
+		} else if (header) {
+			rows = headerRowCount;
+			columns = headerData["0"].length;
+		} else {
+			errorLevel(3, "No Header and no body provided!");
+		}
+
+		grid.style.gridTemplateRows = `repeat(${rows + headerRowCount}, auto)`;
+		for (let col = 0; col < columns; col++) {
+			const cellItem = body[col];
+			let names = null;
+			if (cellItem.settings?.names) {
+				names = cellItem.settings.names.join("_");
+			} else if (cellItem.description) {
+				names = cellItem.description;
+			}
+			let gridCells = [];
+
+			let rowHeaderShift = 0;
+			for (let row = 0; row < rows + headerRowCount; row++) {
+				if (headerAvailable && headerData.hasOwnProperty(row)) {
+					const headerItem = headerData[row][col];
+					rowHeaderShift++;
+					if (headerItem.skip) continue;
+					const type = headerItem.type ? headerItem.type : "Lbl";
+					const { wrapper, cell } = KadTable.createGridCell({ type, data: headerItem.data });
+					wrapper.classList.add("cl_gridTableWrapperHeader");
+					this.cellOptions({ wrapper, cell, settings: headerItem.settings || cell.settings || false });
+					if (names != null) {
+						cell.id = `id${type}_${names}_Header_${row}`;
+					}
+					wrapper.style.gridRow = row + 1;
+
+					if (headerItem.colSpan) {
+						wrapper.style.gridColumn = `${col + 1} / span ${headerItem.colSpan}`;
+						if (col + headerItem.colSpan - 1 == columns - 1) wrapper.classList.add("cl_noBorderRight");
+					}
+					if (headerItem.rowSpan) {
+						wrapper.style.gridRow = `${row + 1} / span ${headerItem.rowSpan}`;
+						if (row + headerItem.rowSpan - 1 < headerRowCount - 1) wrapper.classList.add("cl_noBorderBottom");
+					}
+
+					grid.append(wrapper);
+					if (col == columns - 1) {
+						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
+						wrapper.classList.add("cl_noBorderRight");
+					}
+					if (row < headerRowCount - 1 && !headerItem.settings.thickBorder && !headerItem.settings.thinBorder) {
+						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
+						wrapper.classList.add("cl_noBorderBottom");
+					}
+					let height = wrapper.clientHeight;
+					if (row > 0) height -= 1; // shift by 1 pixel to hide gap between
+					wrapper.style.top = `${row * height}px`;
+				} else {
+					const bodyRow = row - rowHeaderShift;
+					const type = cellItem.type ? cellItem.type : "Lbl";
+					const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data[bodyRow] });
+					wrapper.classList.add("cl_gridTableWrapper");
+					this.cellOptions({ wrapper, cell, settings: cellItem.settings, index: bodyRow });
+					if (names != null) {
+						cell.id = `id${type}_${names}_${bodyRow}`;
+					}
+					cell.classList.add("cl_gridTableItem");
+					if (bodyRow == rows - 1) {
+						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
+						wrapper.classList.add("cl_noBorderBottom");
+					}
+					if (col == columns - 1) {
+						wrapper.classList.remove("cl_thinBorderRight", "cl_thickBorderRight");
+						wrapper.classList.add("cl_noBorderRight");
+					}
+					gridCells.push(wrapper);
+				}
+			}
+			grid.append(...gridCells);
+		}
+	},
+
+	createGridCell({ type, data = null }) {
+		const wrapper = document.createElement("div");
+		if (errorCheckedLevel(!Object.keys(KadTable.gridCells).includes(type), 3, "Wrong Type: ", type)) return;
+		const cell = KadTable.gridCells[type]({ data });
+		wrapper.appendChild(cell);
+		return { wrapper, cell };
+	},
+	gridCells: {
+		Lbl({ data } = {}) {
+			const child = document.createElement("label");
+			child.type = "Lbl";
+			child.innerHTML = data;
+			return child;
+		},
+		H1({ data } = {}) {
+			const child = document.createElement("H1");
+			child.type = "H1";
+			child.innerHTML = data;
+			return child;
+		},
+		Colbox({ data } = {}) {
+			const child = document.createElement("div");
+			child.classList.add("coloredBox");
+			child.style.background = KadColor.formatAsCSS({ colorArray: data, type: "HSL" });
+			return child;
+		},
+		URLImg({ data } = {}) {
+			const child = document.createElement("img");
+			child.type = "Img";
+			child.setAttribute("referrerpolicy", "no-referrer");
+			child.src = data;
+			return child;
+		},
+		KADImg({ data } = {}) {
+			const child = document.createElement("img");
+			child.type = "Img";
+			child.src = KadDOM.getImgPath(data);
+			return child;
+		},
+	},
+	toArray(val) {
+		if (Array.isArray(val)) return val;
+		return [val];
+	},
+	cellOptions({ wrapper, cell, settings = null, index } = {}) {
+		if (settings == null) return;
+		for (let [key, value] of Object.entries(settings)) {
+			switch (key) {
+				case "description":
+					cell.description = value;
+					break;
+				case "class":
+					cell.classList.add(...this.toArray(val));
+					break;
+				case "title":
+					cell.title = value[index];
+					break;
+				case "for":
+					cell.setAttribute("for", settings.for);
+					break;
+				case "font":
+					{
+						let valueArray = this.toArray(value);
+						if (valueArray.includes("bold")) cell.style.fontWeight = "bold";
+					}
+					break;
+				// wrapper settings
+				case "thinBorder":
+					{
+						let valueArray = this.toArray(value);
+						if (valueArray.includes("top")) wrapper.classList.add("cl_thinBorderTop");
+						if (valueArray.includes("right")) wrapper.classList.add("cl_thinBorderRight");
+						if (valueArray.includes("bottom")) wrapper.classList.add("cl_thinBorderBottom");
+						if (valueArray.includes("left")) wrapper.classList.add("cl_thinBorderLeft");
+					}
+					break;
+				case "thickBorder":
+					{
+						let valueArray = this.toArray(value);
+						if (valueArray.includes("top")) wrapper.classList.add("cl_thickBorderTop");
+						if (valueArray.includes("right")) wrapper.classList.add("cl_thickBorderRight");
+						if (valueArray.includes("bottom")) wrapper.classList.add("cl_thickBorderBottom");
+						if (valueArray.includes("left")) wrapper.classList.add("cl_thickBorderLeft");
+					}
+					break;
+				case "noBorder":
+					{
+						let valueArray = this.toArray(value);
+						if (valueArray.includes("top")) wrapper.classList.add("cl_noBorderTop");
+						if (valueArray.includes("right")) wrapper.classList.add("cl_noBorderRight");
+						if (valueArray.includes("bottom")) wrapper.classList.add("cl_noBorderBottom");
+						if (valueArray.includes("left")) wrapper.classList.add("cl_noBorderLeft");
+					}
+					break;
+				case "cursor":
+					wrapper.style.cursor = value;
+					break;
+				case "align":
+					wrapper.style.textAlign = value;
+					break;
+				case "justify":
+					wrapper.style.alignContent = value;
+					break;
+				//ui-Styles
+				case "uiSize":
+				case "imgSize":
+				case "uiType":
+				case "uiFlex":
+				case "uiFilter":
+					cell.setAttribute(key, value);
+					break;
+				// functions -- combined wrapper <-> cell
+				case "onclick":
+					wrapper.addEventListener("click", settings.onclick);
+					break;
+				case "onmouseover":
+					wrapper.addEventListener("mouseover", settings.onmouseover);
+					break;
+				case "onmouseleave":
+					wrapper.addEventListener("mouseleave", settings.onmouseleave);
+					break;
+				case "copy":
+					wrapper.addEventListener("click", () => copyToClipboard(cell.textContent), false);
+					wrapper.style.cursor = "copy";
+					break;
+				default:
+					log("Unhandled Parameter:", key, wrapper);
+					break;
+			}
+		}
+	},
+
+	//
+	// old Table
+	//
 	clear(id) {
 		const obj = dbID(id);
 		for (let i = obj.rows.length - 1; i >= 0; i--) {
@@ -1027,8 +1310,7 @@ export const KadTable = {
 		const obj = dbID(tabID);
 		return obj.insertRow(obj.rows.length);
 	},
-	addHeaderCell(row, opt) {
-		opt.name = this.createID(opt);
+	addHeaderCell(row, opt = {}) {
 		let cell = document.createElement("th");
 		cell.id = `id${opt.type}${opt.name}`;
 		const mainChild = this.createCell(opt);
@@ -1038,7 +1320,6 @@ export const KadTable = {
 		return cell;
 	},
 	addCell(row, opt = {}, prevCell = null) {
-		opt.name = this.createID(opt);
 		const mainChild = this.createCell(opt);
 		let cell = undefined;
 		if (prevCell === null) {
@@ -1056,7 +1337,10 @@ export const KadTable = {
 		return cell || prevCell;
 	},
 	createCell(opt = {}) {
-		return KadTable.cells[opt.type](opt);
+		opt.name = this.createCellName(opt);
+		const child = KadTable.cells[opt.type](opt);
+		KadTable.UIOptions(child, opt);
+		return child;
 	},
 	cells: {
 		Vin(opt) {
@@ -1068,7 +1352,6 @@ export const KadTable = {
 				child.type = opt.subGroup;
 				child.placeholder = opt.placeholder;
 			}
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Btn(opt) {
@@ -1103,7 +1386,6 @@ export const KadTable = {
 					child.type = "text";
 					child.textContent = opt.text;
 			}
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Lbl(opt) {
@@ -1114,14 +1396,12 @@ export const KadTable = {
 				child.for = opt.for;
 				opt.pointer = true;
 			}
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		H1(opt) {
 			const child = document.createElement("H1");
 			child.innerHTML = opt.text;
 			child.type = "H1";
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Sel(opt) {
@@ -1135,7 +1415,6 @@ export const KadTable = {
 			for (let n = 0; n < opt.options.length; n++) {
 				child.options[n + start] = new Option(opt.options[n]);
 			}
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Colbox(opt) {
@@ -1143,7 +1422,6 @@ export const KadTable = {
 			opt.type = "Colbox";
 			child.classList.add("coloredBox");
 			child.style.background = KadColor.formatAsCSS({ colorArray: opt.color, type: "HSL" });
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Img(opt) {
@@ -1170,17 +1448,14 @@ export const KadTable = {
 					child.src = opt.img;
 					break;
 			}
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 		Div(opt) {
 			const child = document.createElement("div");
-			KadTable.UIOptions(child, opt);
 			return child;
 		},
 	},
-	UIOptions(cell, opt) {
-		opt.name = KadTable.createID(opt);
+	UIOptions(cell, opt = {}) {
 		cell.id = `id${opt.type}_child${opt.name}`;
 		if (opt.hasOwnProperty("idNoChild") && opt.idNoChild) cell.id = `id${opt.type}${opt.name}`;
 
@@ -1204,9 +1479,7 @@ export const KadTable = {
 			}
 		}
 		if (opt.pointer || opt.copy) cell.style.cursor = "copy";
-		if (opt.copy) {
-			cell.addEventListener("click", () => copyToClipboard(cell.textContent), false);
-		}
+		if (opt.copy) cell.addEventListener("click", () => copyToClipboard(cell.textContent), false);
 		if (opt.alias) cell.style.cursor = "alias";
 		if (opt.hasOwnProperty("for")) cell.setAttribute("for", opt.for);
 		if (opt.hasOwnProperty("oninput")) cell.addEventListener(opt.oninput, "input", false);
@@ -1215,15 +1488,13 @@ export const KadTable = {
 			// cell.style.cursor = "pointer";
 		}
 		if (opt.onmouseover) {
-			cell.onmouseover = opt.onmouseover;
 			cell.addEventListener("mouseover", opt.onmouseover);
 		}
 		if (opt.onmouseleave) {
-			cell.onmouseleave = opt.onmouseleave;
 			cell.addEventListener("mouseleave", opt.onmouseleave);
 		}
 	},
-	CellOptions(cell, opt) {
+	CellOptions(cell, opt = {}) {
 		if (opt.hasOwnProperty("cellStyle")) {
 			for (const [key, value] of Object.entries(opt.cellStyle)) {
 				cell.style[key] = value;
@@ -1240,7 +1511,7 @@ export const KadTable = {
 		cell.colSpan = opt.colSpan || 1;
 		cell.rowSpan = opt.rowSpan || 1;
 	},
-	createID(opt) {
+	createCellName(opt = {}) {
 		return opt.hasOwnProperty("name") ? opt.name : `_${opt.names.join("_")}`;
 	},
 };
@@ -1252,8 +1523,17 @@ export const KadColor = {
 		HSB: { postfix: ["", "%", "%"], stateRange: [0, 0, 100] },
 		CMYK: { postfix: ["%", "%", "%", "%"], stateRange: [0, 0, 0, 100] },
 	},
-	normalize(colorArray) {
-		return [colorArray[0] / 255, colorArray[1] / 255, colorArray[2] / 255];
+	normalize(colorArray, boundary = 255) {
+		return [colorArray[0] / boundary, colorArray[1] / boundary, colorArray[2] / boundary];
+	},
+	validateColor({ colorArray, type = "RGB" }) {
+		let Range = this.types[type].stateRange;
+		let array = type != "HEX" ? colorArray : colorArray.map((num) => parseInt(num.substring(0, 2), 16));
+		for (let i = 0; i < Range.length; i++) {
+			if (Number.isNaN(array[i])) return false;
+			if (array[i] < 0 || array[i] > Range[i]) return false;
+		}
+		return true;
 	},
 	colAsArray({ colorArray, from = "HSL", to = "RGB" } = {}) {
 		let colFrom = from.toUpperCase();
@@ -1310,7 +1590,7 @@ export const KadColor = {
 		for (let i = 0; i < colorArray.length; i++) {
 			retString += i > typePostfix.length ? ` / ${colorArray[i]}` : ` ${colorArray[i]}${typePostfix[i]}`;
 		}
-		return retString;
+		return retString.trim();
 	},
 	formatAsCSS({ colorArray, type = "HSL" } = {}) {
 		if (typeof colorArray === "string") return `${colorArray.toUpperCase()}`;
