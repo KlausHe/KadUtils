@@ -14,6 +14,33 @@ export function dbCLStyle(id, loc = 0) {
 	if (loc === null) return [...document.getElementsByClassName(id)].map((s) => s.style);
 	return document.getElementsByClassName(id)[loc].style;
 }
+export function daEL(id, type, fn) {
+	dbID(id).addEventListener(type, fn);
+}
+export function objectLength(obj) {
+	return Object.keys(obj).length;
+}
+export function hostDebug() {
+	return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
+export function getFavicon(url, size = 15) {
+	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
+}
+export function deepClone(data) {
+	if (data === null || data === undefined) return data;
+	return JSON.parse(JSON.stringify(data));
+}
+export function copyToClipboard(text, enabled = true) {
+	if (!enabled) return;
+	if (!navigator.clipboard) return;
+	let val = text;
+	if (!isNaN(val) && Number.isFinite(Number(val))) {
+		val = val.toString().replace(/,/g, ""); //remove thousandscomma
+		val = val.replace(".", ",");
+	}
+	navigator.clipboard.writeText(val);
+}
 
 /**
  * @export
@@ -34,7 +61,7 @@ export function dbCLStyle(id, loc = 0) {
  * @returns
  */
 export function initEL({ id, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, dataset = [] } = {}) {
-	if (errorChecked(typeof id === "string", "ID is a string but should be an HTML-Object")) return;
+	if (KadLog.errorChecked(typeof id === "string", "ID is a string but should be an HTML-Object")) return;
 	const typeAction = {
 		text: "input",
 		email: "input",
@@ -63,7 +90,15 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	let startIndex = selStartIndex;
 	let startValue = selStartValue;
 	let reset = resetValue;
-	let animated = { animate: null, singleLetter: false, delimiter: "...", timestep: 20, timer: null, textContent: "", ...animatedText };
+	let animated = {
+		animate: null,
+		singleLetter: false,
+		delimiter: "...",
+		timestep: 20,
+		timer: null,
+		textContent: "",
+		...animatedText,
+	};
 	let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
 	// fill "dataset"
@@ -89,7 +124,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	// add GET function
 	if (["number"].includes(type)) {
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
 			return KadDOM.numberFromInput({ id, failSafeVal: fail, noPlaceholder });
 		};
@@ -97,15 +132,16 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	if (["text", "email", "password", "textarea"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			let fail = failSafe != null ? failSafe : resetValue;
+			fail = noPlaceholder != null ? null : fail;
 			return KadDOM.stringFromInput({ id, failSafeVal: fail, noPlaceholder });
 		};
 	}
 	if (["select-one", "select"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ textContent = null, index = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			if (textContent) return id.options[id.selectedIndex].textContent;
 			if (index) return id.selectedIndex;
 			return id.value;
@@ -114,7 +150,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	if (["time", "date", "datetime-local"].includes(type)) {
 		if (action == "focus") return;
 		id.KadGet = function ({ format = null, dateObject = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
 			dateFormating.format = format != null ? format : dateFormating.format;
 			dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
@@ -137,7 +173,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 	// add reset-function
 	if (["select-one", "select"].includes(type)) {
 		id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			startIndex = selStartIndex != null ? selStartIndex : startIndex;
 			startValue = selStartValue != null ? selStartValue : startValue;
 			if (selList.length > 0) {
@@ -176,7 +212,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		};
 	} else if (["time", "date", "datetime-local"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			dateFormating.format = format != null ? format : dateFormating.format;
@@ -192,7 +228,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		};
 	} else if (["text", "number"].includes(type)) {
 		id.KadReset = function ({ resetValue = null, dbList = [] } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			if (dbList.length > 0) makeDBlist(dbList);
@@ -200,7 +236,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		};
 	} else {
 		id.KadReset = function ({ resetValue = null } = {}) {
-			if (errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+			if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
 			reset = resetValue != null ? resetValue : reset;
 			KadDOM.resetInput(id, reset, domOpts);
 			return reset;
@@ -353,136 +389,87 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 		if (typeString != "object") return true;
 	}
 }
-export function daEL(id, type, fn) {
-	dbID(id).addEventListener(type, fn);
-}
-export function objectLength(obj) {
-	return Object.keys(obj).length;
-}
-export function hostDebug() {
-	return ["localhost", "127.0.0.1"].includes(window.location.hostname);
-}
 
-function getStackFunctionAt(level = 1) {
-	const levelString = Error().stack.split(/\r?\n|\r|\n/g);
-	const l = Math.min(Math.max(0, level + 1), levelString.length - 2);
-	let arr = levelString[l].split(/[@://]{1,}/);
-	const fileIndex = arr.findIndex((e) => e.includes(".js"));
-	let text = "";
-	let path = "/";
-	for (let i = 4; i < fileIndex; i++) {
-		path += `${arr[i]}/`;
-	}
-	text += `${path}`;
-	text += `${arr[fileIndex]}: `;
-	text += `${arr[0]}() `;
-	text += `Ln:${arr[fileIndex + 1]}\n`;
-	return { text };
-}
-/**
- *
- * @param  {...any} logText
- * @returns
- */
-export function log(...logText) {
-	if (!hostDebug()) return;
-	console.group(`%c${getStackFunctionAt().text}`, "background: white; color: black");
-	let text = "";
-	if (typeof logText === "object" && logText !== null) text = logText;
-	else text = logText.join(" ");
-	if (text) console.log(...text);
-	console.groupEnd();
-}
-/**
- *
- *
- * @export
- * @param {number} depth
- * @param {...{}} logText
- */
-export function logLevel(depth, ...logText) {
-	if (!hostDebug()) return;
-	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level).text}`, "background: white; color: black");
-	let text = "";
-	if (typeof logText === "object" && logText !== null) text = logText;
-	else text = logText.join(" ");
-	if (text) console.log(...text);
-	console.groupEnd();
-}
-export function logChecked(state, ...logText) {
-	if (!hostDebug()) return;
-	if (!state) return false;
-	console.group(`%c${getStackFunctionAt().text}`, "background: green; color: white");
-	let text = logText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-	return true;
-}
-export function logCheckedLevel(state, depth, ...logText) {
-	if (!hostDebug()) return;
-	if (!state) return false;
-	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level).text}`, "background: green; color: white");
-	let text = logText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-	return true;
-}
-export function error(...errorText) {
-	if (!hostDebug()) return;
-	console.group(`%c${getStackFunctionAt().text}`, "background: red; color: white");
-	let text = errorText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-}
-export function errorLevel(depth, ...errorText) {
-	if (!hostDebug()) return;
-	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level).text}`, "background: red; color: black");
-	let text = errorText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-	return true;
-}
-export function errorChecked(state, ...errorText) {
-	if (!hostDebug()) return false;
-	if (!state) return false;
-	console.group(`%c${getStackFunctionAt().text}`, "background: red; color: black");
-	let text = errorText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-	return true;
-}
-export function errorCheckedLevel(state, depth, ...errorText) {
-	if (!hostDebug()) return;
-	if (!state) return false;
-	const level = typeof depth === "number" ? depth : 1;
-	console.group(`%c${getStackFunctionAt(level).text}`, "background: red; color: black");
-	let text = errorText.join(" ");
-	if (text) console.log(text);
-	console.groupEnd();
-	return true;
-}
+export const KadLog = {
+	getStackFunctionAt(level = 0) {
+		const levelString = Error().stack.split(/\r?\n|\r|\n/g);
+		const l = Math.min(Math.max(0, level + 2), levelString.length - 2); // "+2" to ignore log-chain in KadUtils
+		let arr = levelString[l].split(/[@://]{1,}/);
+		const fileIndex = arr.findIndex((e) => e.includes(".js"));
+		let text = "";
+		let path = "/";
+		for (let i = 4; i < fileIndex; i++) {
+			path += `${arr[i]}/`;
+		}
+		text += `${path}`;
+		text += `${arr[fileIndex]}: `;
+		text += `${arr[0]}()\n`;
+		text += `Ln:${arr[fileIndex + 1]}\n`;
+		return { text };
+	},
+	drawLog(error, level, ...args) {
+		if (!hostDebug()) return;
+		if (typeof level !== "number") {
+			console.error("Level has to be a Number!");
+			return false;
+		}
+		if (args.length == 0) {
+			console.group(`%cYou are here:\n%c ${this.getStackFunctionAt(level).text}`, "background: lightblue; color: black", "background: default; color: default");
+		} else if (error) {
+			console.group(`%c${this.getStackFunctionAt(level).text}`, "background: red; color: black");
+		} else {
+			console.group(`%c${this.getStackFunctionAt(level).text}`, "background: yellow; color: black");
+		}
+		if (args.length > 0) console.log(...args);
+		console.groupEnd();
+	},
 
-export function getFavicon(url, size = 15) {
-	//alternative: `https://www.google.com/s2/favicons?domain=${url}&sz=${size}`;
-	return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=${size}&url=${url}`;
-}
-export function deepClone(data) {
-	if (data === null || data === undefined) return data;
-	return JSON.parse(JSON.stringify(data));
-}
-export function copyToClipboard(text, enabled = true) {
-	if (!enabled) return;
-	if (!navigator.clipboard) return;
-	let val = text;
-	if (!isNaN(val) && Number.isFinite(Number(val))) {
-		val = val.toString().replace(/,/g, ""); //remove thousandscomma
-		val = val.replace(".", ",");
-	}
-	navigator.clipboard.writeText(val);
-}
+	/**
+	 *
+	 * @param  {...any} logText
+	 * @returns
+	 */
+	log(...args) {
+		this.drawLog(false, 1, ...args);
+	},
+	/**
+	 *
+	 *
+	 * @export
+	 * @param {number} depth
+	 * @param {...{}} logText
+	 */
+	logLevel(level, ...args) {
+		this.drawLog(false, level, ...args);
+	},
+	logChecked(state, ...args) {
+		if (!state) return false;
+		this.drawLog(false, 1, ...args);
+		return true;
+	},
+	logCheckedLevel(state, level, ...args) {
+		if (!state) return false;
+		this.drawLog(false, level, ...args);
+		return true;
+	},
+
+	error(...args) {
+		this.drawLog(true, 1, ...args);
+	},
+	errorLevel(level, ...args) {
+		this.drawLog(true, level, ...args);
+	},
+	errorChecked(state, ...args) {
+		if (!state) return false;
+		this.drawLog(true, 1, ...args);
+		return true;
+	},
+	errorCheckedLevel(state, level, ...args) {
+		if (!state) return false;
+		this.drawLog(true, level, ...args);
+		return true;
+	},
+};
 
 export const KadFile = {
 	/**
@@ -497,10 +484,10 @@ export const KadFile = {
 	 * @returns {object}
 	 */
 	async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null } = {}) {
-		if (errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
-		if (errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
-		if (errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
-		if (errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to return the data is provided! use callback or variable")) return;
+		if (KadLog.errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
+		if (KadLog.errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
+		if (KadLog.errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
+		if (KadLog.errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to return the data is provided! use callback or variable")) return;
 
 		let urls = url != null ? [url] : urlArray;
 		let vars = url != null ? [variable] : variableArray;
@@ -510,7 +497,6 @@ export const KadFile = {
 			urlData[vars[i]] = urls[i];
 		}
 		await KadFile.getDataURL(urlData);
-
 		if (callback == null) return urlData;
 		if (urlData.error != null) {
 			if (errorCallback == null) {
@@ -687,15 +673,15 @@ export const KadDOM = {
 		function evaluateTime() {
 			const h = Number(obj.value.slice(0, 2));
 			const m = Number(obj.value.slice(3, 5));
-			let time = m + h * 60;
-			time += time % 5 == 0 ? dir * 5 : dir;
+			let time = m + h * 60 + dir;
+			// time += time % 5 == 0 ? dir * 5 : dir;
 			const t = KadDate.minutesToObj(time);
 			obj.value = `${t.h}:${t.m}`;
 		}
 		function evaluateNumber() {
 			if (dir == 0) {
-				const time = new Date().getTime();
-				obj.setAttribute("data-ts", time);
+				// const time = new Date().getTime();
+				// obj.setAttribute("data-ts", time);
 				if (Number(obj.value) === 0 || Number(obj.value) === Number(obj.min)) {
 					obj.value = "";
 					return;
@@ -703,19 +689,21 @@ export const KadDOM = {
 				obj.value = obj.min || 0;
 				return;
 			}
-			const time = new Date().getTime();
-			let skip = false;
-			if (obj.hasAttribute("data-ts")) {
-				if (time - obj.dataset.ts < 1500) skip = true;
-			}
-			obj.setAttribute("data-ts", time);
+			// const time = new Date().getTime();
+			// let skip = false;
+			// if (obj.hasAttribute("data-ts")) {
+			// 	if (time - obj.dataset.ts < 1500) skip = true;
+			// }
+			// obj.setAttribute("data-ts", time);
+			// const actual = obj.value == "" && obj.placeholder != "" ? Number(obj.placeholder) : Number(obj.value);
+			// let num = 0;
+			// if (obj.hasAttribute("step")) {
+			// 	num = actual + dir * Number(obj.step);
+			// } else {
+			// num = skip && actual % 5 == 0 ? actual + dir * 5 : actual + dir;
+			// }
 			const actual = obj.value == "" && obj.placeholder != "" ? Number(obj.placeholder) : Number(obj.value);
-			let num = 5;
-			if (obj.hasAttribute("step")) {
-				num = actual + dir * Number(obj.step);
-			} else {
-				num = skip && actual % 5 == 0 ? actual + dir * 5 : actual + dir;
-			}
+			let num = actual + dir;
 			const min = obj.hasAttribute("min") && dir < 1 ? Number(obj.min) : null;
 			const max = obj.hasAttribute("max") && dir > 0 ? Number(obj.max) : null;
 			obj.value = KadValue.constrain(num, min, max);
@@ -879,8 +867,9 @@ export const KadArray = {
 			} else {
 				const x = caseSensitive ? valueA.toLowerCase() : valueA;
 				const y = caseSensitive ? valueB.toLowerCase() : valueB;
-				const dir = inverse ? 1 : -1;
-				return x < y ? dir : x > y ? dir : 0;
+				const comp = x.localeCompare(y);
+				const dir = inverse ? -1 : 1;
+				return comp * dir > 0;
 			}
 		});
 	},
@@ -1020,87 +1009,43 @@ export const KadString = {
 	},
 };
 export const KadTable = {
-	generateHeaderFromHeader(_header) {
-		const header = Array.isArray(_header) ? { 0: _header } : _header;
-		let headerData = {};
-		for (let [key, value] of Object.entries(header)) {
-			let data = [];
-			for (let i = 0; i < value.length; i++) {
-				const head = header[key][i];
-				data.push({
-					type: head.type || null,
-					data: head.data || null,
-					settings: head.settings || null,
-					description: head.description || null,
-					colSpan: head.colSpan || null,
-					rowSpan: head.rowSpan || null,
-					skip: head.skip || null,
-				});
-				if (head.colSpan) {
-					for (let j = 0; j < head.colSpan - 1; j++) {
-						data.push({ skip: true });
-					}
-				}
-			}
-			headerData[key] = data;
-		}
-		return { headerData };
-	},
-	generateHeaderFromBody(body) {
-		let headerData = [];
-		for (let i = 0; i < body.length; i++) {
-			const head = body[i].header;
-			if (errorChecked(head == undefined || head.skip, 'No skipping in "body-Header" configuration. Use the Header-Object! ')) return;
-			headerData.push({
-				type: head.type || null,
-				data: head.data || null,
-				settings: head.settings || null,
-				description: head.description || null,
-			});
-		}
-		headerData = { 0: headerData };
-		return { headerData };
-	},
 	createHTMLGrid({ id = null, header = null, body = null } = {}) {
-		if (errorChecked(id == null)) return;
-		if (errorChecked(body != null && !Array.isArray(body), "Header has to be an Array!")) return;
+		if (KadLog.errorCheckedLevel(id == null, 2, "No ID passed")) return;
+		if (KadLog.errorCheckedLevel(body != null && !Array.isArray(body), 2, "Body has to be an Array!")) return;
+		if (body === null && header === null) {
+			KadLog.log("Table", id, "cleared!");
+			dbID(id).innerHTML = "";
+		}
 		const grid = dbID(id);
 		grid.innerHTML = "";
 		grid.classList.add("cl_gridTable");
 
 		let headerData = [];
-		let headerAvailable = false;
-		if (header != null) {
-			headerAvailable = true;
-			const data = this.generateHeaderFromHeader(header);
-			headerData = data.headerData;
-		} else if (body != null && body.some((item) => item.hasOwnProperty("header"))) {
-			headerAvailable = true;
-			const data = this.generateHeaderFromBody(body);
+		let headerAvailable = header != null;
+		if (headerAvailable) {
+			const data = this.generateHeader(header);
 			headerData = data.headerData;
 		}
-		const headerRowCount = objectLength(headerData);
+		const headerRowCount = headerAvailable ? objectLength(headerData) : 0;
 
-		let rows = null;
-		let columns = null;
+		let rows = 0;
+		let columns = 0;
 		if (body) {
-			rows = body[0].data.length;
-			columns = body.length;
+			columns = this.bodyHandleMultipleColumns(body, columns);
+			for (let item of body) {
+				if (!Array.isArray(item.data)) continue;
+				rows = Math.max(rows, item.data.length);
+			}
 		} else if (header) {
 			rows = headerRowCount;
 			columns = headerData["0"].length;
-		} else {
-			errorLevel(3, "No Header and no body provided!");
 		}
 
 		grid.style.gridTemplateRows = `repeat(${rows + headerRowCount}, auto)`;
 		for (let col = 0; col < columns; col++) {
-			const cellItem = body[col];
-			let names = null;
-			if (cellItem.settings?.names) {
-				names = cellItem.settings.names.join("_");
-			} else if (cellItem.description) {
-				names = cellItem.description;
+			let cellItem = null;
+			if (body) {
+				cellItem = body[col];
 			}
 			let gridCells = [];
 
@@ -1113,62 +1058,125 @@ export const KadTable = {
 					const type = headerItem.type ? headerItem.type : "Lbl";
 					const { wrapper, cell } = KadTable.createGridCell({ type, data: headerItem.data });
 					wrapper.classList.add("cl_gridTableWrapperHeader");
-					this.cellOptions({ wrapper, cell, settings: headerItem.settings || cell.settings || false });
-					if (names != null) {
-						cell.id = `id${type}_${names}_Header_${row}`;
-					}
-					wrapper.style.gridRow = row + 1;
+					this.cellOptions({ wrapper, cell, type, settings: headerItem.settings || cell.settings || false, index: headerItem.settings?.index });
 
-					if (headerItem.colSpan) {
-						wrapper.style.gridColumn = `${col + 1} / span ${headerItem.colSpan}`;
-						if (col + headerItem.colSpan - 1 == columns - 1) wrapper.classList.add("cl_noBorderRight");
-					}
-					if (headerItem.rowSpan) {
-						wrapper.style.gridRow = `${row + 1} / span ${headerItem.rowSpan}`;
-						if (row + headerItem.rowSpan - 1 < headerRowCount - 1) wrapper.classList.add("cl_noBorderBottom");
-					}
+					this.setGridRow(wrapper, row);
+					this.setGridColumn(wrapper, col, columns, headerItem.colSpan);
+
+					if (row == rows + headerRowCount - 1) this.styleNoBorderBottom(wrapper);
+					if (col == columns - 1) this.styleNoBorderRight(wrapper);
 
 					grid.append(wrapper);
-					if (col == columns - 1) {
-						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
-						wrapper.classList.add("cl_noBorderRight");
+					if (row == 0) {
+						wrapper.style.position = "sticky";
+						wrapper.style.top = "0px";
 					}
-					if (row < headerRowCount - 1 && !headerItem.settings.thickBorder && !headerItem.settings.thinBorder) {
-						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
-						wrapper.classList.add("cl_noBorderBottom");
-					}
-					let height = wrapper.clientHeight;
-					if (row > 0) height -= 1; // shift by 1 pixel to hide gap between
-					wrapper.style.top = `${row * height}px`;
-				} else {
+				} else if (body != null) {
 					const bodyRow = row - rowHeaderShift;
 					const type = cellItem.type ? cellItem.type : "Lbl";
-					const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data[bodyRow] });
+					const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data, index: bodyRow });
 					wrapper.classList.add("cl_gridTableWrapper");
-					this.cellOptions({ wrapper, cell, settings: cellItem.settings, index: bodyRow });
-					if (names != null) {
-						cell.id = `id${type}_${names}_${bodyRow}`;
-					}
+					this.cellOptions({ wrapper, cell, type, settings: cellItem.settings, index: bodyRow });
+
 					cell.classList.add("cl_gridTableItem");
-					if (bodyRow == rows - 1) {
-						wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
-						wrapper.classList.add("cl_noBorderBottom");
-					}
-					if (col == columns - 1) {
-						wrapper.classList.remove("cl_thinBorderRight", "cl_thickBorderRight");
-						wrapper.classList.add("cl_noBorderRight");
-					}
+
+					this.setGridRow(wrapper, row);
+					this.setGridColumn(wrapper, col, columns, cellItem.colSpan);
+
+					if (bodyRow == rows - 1) this.styleNoBorderBottom(wrapper);
+					if (col == columns - 1) this.styleNoBorderRight(wrapper);
 					gridCells.push(wrapper);
+
+					// const nonSettings = ["type", "data", "skip", "multiColumn", "settings"];
+					// if (Object.keys(cellItem).some((key) => !nonSettings.includes(key))) KadLog.errorLevel(2, "Wrong argument! Possible Items:\n", nonSettings.join(" / "), "\nProvided:\n", Object.keys(cellItem));
 				}
 			}
 			grid.append(...gridCells);
 		}
 	},
+	generateHeader(_header) {
+		const header = Array.isArray(_header) ? { 0: _header } : _header;
+		let headerData = {};
+		for (let [key, value] of Object.entries(header)) {
+			let data = [];
+			for (let i = 0; i < value.length; i++) {
+				const head = header[key][i];
+				data.push({
+					skip: head.skip || null,
+					type: head.type || null,
+					data: head.data || null,
+					colSpan: head.colSpan || null,
+					settings: head.settings || null,
+				});
+				for (let j = 0; j < head.colSpan - 1; j++) {
+					data.push({ skip: true });
+				}
+			}
+			headerData[key] = data;
+		}
+		return { headerData };
+	},
 
-	createGridCell({ type, data = null }) {
+	bodyHandleMultipleColumns(body, columns) {
+		let col = columns;
+		for (let b = body.length - 1; b >= 0; b--) {
+			let item = body[b];
+			if (item.multiColumn) {
+				const arr = this.splitDataInMultipleColumns(item.data, item.multiColumn);
+				for (let i = 0; i < arr.length; i++) {
+					col++;
+					if (i > 0) {
+						let newItem = {};
+						for (let key of Object.keys(item)) {
+							newItem[key] = item[key];
+						}
+						body.splice(b + i, 0, newItem);
+					}
+					body[b + i].data = arr[i];
+				}
+			} else {
+				col++;
+			}
+		}
+		return col;
+	},
+
+	splitDataInMultipleColumns(arr, num = 1) {
+		if (num == 1) return [arr];
+		let newArrays = new Array(num).fill([]);
+		for (let i = 0; i < arr.length; i++) {
+			newArrays[i % num].push(arr[i]);
+		}
+		return newArrays;
+	},
+
+	setGridRow(wrapper, row) {
+		wrapper.style.gridRow = row + 1;
+	},
+	setGridColumn(wrapper, col, columns, colSpan = undefined) {
+		let span = 1;
+		if (colSpan != undefined) {
+			span = colSpan;
+			if (col + span - 1 == columns - 1) wrapper.classList.add("cl_noBorderRight");
+		}
+		wrapper.style.gridColumn = `${col + 1} / span ${span}`;
+	},
+	styleNoBorderBottom(wrapper) {
+		wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
+		wrapper.classList.add("cl_noBorderBottom");
+	},
+	styleNoBorderRight(wrapper) {
+		wrapper.classList.remove("cl_thinBorderRight", "cl_thickBorderRight");
+		wrapper.classList.add("cl_noBorderRight");
+	},
+
+	createGridCell({ type, data = null, index = null }) {
 		const wrapper = document.createElement("div");
-		if (errorCheckedLevel(!Object.keys(KadTable.gridCells).includes(type), 3, "Wrong Type: ", type)) return;
-		const cell = KadTable.gridCells[type]({ data });
+		if (KadLog.errorCheckedLevel(!Object.keys(KadTable.gridCells).includes(type), 2, "Unsupported Type: ", type, "\nSupported types:\n-", Object.keys(KadTable.gridCells).join("\n- "))) return;
+
+		let arrayData = Array.isArray(data) ? data[index] : data;
+		if (arrayData === undefined) arrayData = "";
+		const cell = KadTable.gridCells[type]({ data: arrayData });
 		wrapper.appendChild(cell);
 		return { wrapper, cell };
 	},
@@ -1185,10 +1193,46 @@ export const KadTable = {
 			child.innerHTML = data;
 			return child;
 		},
-		Colbox({ data } = {}) {
+		Input({ data } = {}) {
+			const child = document.createElement("Input");
+			child.type = "Input";
+			child.placeholder = data;
+			return child;
+		},
+		Button({ data } = {}) {
+			const child = document.createElement("Button");
+			child.type = "Buton";
+			child.textContent = data;
+			return child;
+		},
+		ButtonImage({ data } = {}) {
+			const child = document.createElement("Button");
+			child.type = "Buton";
+			const img = document.createElement("img");
+			img.type = "Img";
+			img.src = KadDOM.getImgPath(data);
+			child.appendChild(img);
+			child.style.padding = 0;
+			return child;
+		},
+		Checkbox({ data } = {}) {
+			if (data == null) {
+				KadLog.log(data);
+				const child = document.createElement("label");
+				child.type = "Lbl";
+				child.innerHTML = "";
+				return child;
+			}
+			const child = document.createElement("input");
+			child.type = "checkbox";
+			child.checked = data;
+			return child;
+		},
+		Colorbox({ data } = {}) {
 			const child = document.createElement("div");
 			child.classList.add("coloredBox");
-			child.style.background = KadColor.formatAsCSS({ colorArray: data, type: "HSL" });
+			const value = data;
+			child.style.background = KadColor.formatAsCSS({ colorArray: value, type: "HSL" });
 			return child;
 		},
 		URLImg({ data } = {}) {
@@ -1202,6 +1246,7 @@ export const KadTable = {
 			const child = document.createElement("img");
 			child.type = "Img";
 			child.src = KadDOM.getImgPath(data);
+			child.setAttribute("imgSize", "olympiaImg");
 			return child;
 		},
 	},
@@ -1209,26 +1254,42 @@ export const KadTable = {
 		if (Array.isArray(val)) return val;
 		return [val];
 	},
-	cellOptions({ wrapper, cell, settings = null, index } = {}) {
+	cellOptions({ wrapper, cell, type, settings = null, index = null } = {}) {
 		if (settings == null) return;
+		let rcIndex = index;
 		for (let [key, value] of Object.entries(settings)) {
 			switch (key) {
+				case "index":
+					rcIndex = settings.index;
+					break;
 				case "description":
 					cell.description = value;
 					break;
+				case "names":
+					cell.id = `id${type}_${this.toArray(value).join("_")}_${rcIndex}`;
+					break;
 				case "class":
-					cell.classList.add(...this.toArray(val));
+					cell.classList.add(...this.toArray(value));
 					break;
 				case "title":
-					cell.title = value[index];
+					cell.title = value[rcIndex];
 					break;
 				case "for":
-					cell.setAttribute("for", settings.for);
+					cell.setAttribute("for", `${settings.for}_${rcIndex}`);
 					break;
 				case "font":
-					{
-						let valueArray = this.toArray(value);
-						if (valueArray.includes("bold")) cell.style.fontWeight = "bold";
+					if (this.toArray(value).includes("bold")) {
+						cell.style.fontWeight = "bold";
+					}
+					break;
+				case "dList":
+					if (!value[rcIndex]) break;
+					const dList = document.createElement("datalist");
+					dList.id = `dList_uInfo_${rcIndex}`;
+					cell.setAttribute("list", dList.id);
+					cell.appendChild(dList);
+					for (let sug of value[rcIndex]) {
+						dList.appendChild(new Option(sug));
 					}
 					break;
 				// wrapper settings
@@ -1259,7 +1320,14 @@ export const KadTable = {
 						if (valueArray.includes("left")) wrapper.classList.add("cl_noBorderLeft");
 					}
 					break;
+				case "backgroundColor":
+					cell.style.backgroundColor = KadColor.formatAsCSS({ colorArray: value[rcIndex] });
+					wrapper.style.backgroundColor = KadColor.formatAsCSS({ colorArray: value[rcIndex] });
+					cell.style.color = KadColor.stateAsCSS({ colorArray: value[rcIndex] });
+					wrapper.style.color = KadColor.stateAsCSS({ colorArray: value[rcIndex] });
+					break;
 				case "cursor":
+					cell.style.cursor = value;
 					wrapper.style.cursor = value;
 					break;
 				case "align":
@@ -1270,6 +1338,7 @@ export const KadTable = {
 					break;
 				//ui-Styles
 				case "uiSize":
+				case "uiRadius":
 				case "imgSize":
 				case "uiType":
 				case "uiFlex":
@@ -1278,7 +1347,7 @@ export const KadTable = {
 					break;
 				// functions -- combined wrapper <-> cell
 				case "onclick":
-					wrapper.addEventListener("click", settings.onclick);
+					wrapper.addEventListener("click", () => value(rcIndex), false);
 					break;
 				case "onmouseover":
 					wrapper.addEventListener("mouseover", settings.onmouseover);
@@ -1291,7 +1360,7 @@ export const KadTable = {
 					wrapper.style.cursor = "copy";
 					break;
 				default:
-					log("Unhandled Parameter:", key, wrapper);
+					KadLog.log("Unhandled Parameter:", key, wrapper);
 					break;
 			}
 		}
