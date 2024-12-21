@@ -603,7 +603,7 @@ export const KadDOM = {
         const name = dirName[dir + 1];
         const img = document.createElement("img");
         img.classList.add(`img_${name}`);
-        img.setAttribute("alt", `${name}.svg`);
+        // img.setAttribute("alt", `${name}.svg`);
         btn.appendChild(img);
       }
     }
@@ -1347,7 +1347,13 @@ export const KadTable = {
           break;
         // functions -- combined wrapper <-> cell
         case "onclick":
-          wrapper.addEventListener("click", () => value(rcIndex), false);
+          let data = this.toArray(value);
+          if (data.length > 1) {
+            const callback = data.splice(0, 1)[0];
+            wrapper.addEventListener("click", () => callback(...data), false);
+          } else {
+            wrapper.addEventListener("click", () => value(rcIndex), false);
+          }
           break;
         case "onmouseover":
           wrapper.addEventListener("mouseover", settings.onmouseover);
