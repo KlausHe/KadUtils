@@ -915,36 +915,62 @@ export const KadRandom = {
 };
 export const KadDate = {
   getDate(date = null, { format = "DD.MM.YYYY", leadingDigit = true, reversed = false } = {}) {
-    const regexSplit = new RegExp(/([T$-/:-?{-~!"^_`\ [\]])/);
+    const regexSplit = new RegExp(/([T$-/:-?{-~!"^_`\[\]])/);
+    const month = {
+      January: "01",
+      February: "02",
+      March: "03",
+      April: "04",
+      May: "05",
+      June: "06",
+      July: "07",
+      August: "08",
+      September: "09",
+      October: "10",
+      November: "11",
+      December: "12",
+    };
+
+    let dateData = null;
+    if (typeof date == "string") {
+      let dateArr = date.split(regexSplit);
+      dateArr = [dateArr[0], dateArr[2], dateArr[4]];
+      for (let i = 0; i < dateArr.length; i++) {
+        dateArr[i] = month.hasOwnProperty(dateArr[i]) ? month[dateArr[i]] : dateArr[i].padStart(2, "0");
+      }
+      dateData = new Date(dateArr.join("-"));
+    } else {
+      dateData = new Date();
+    }
+
     const conversions = {
-      date: date === null ? new Date() : new Date(date),
       get YYYY() {
-        return this.date.getFullYear();
+        return dateData.getFullYear();
       },
       get YY() {
-        return parseInt(this.date.getFullYear().toString().slice(2, 4), 10);
+        return parseInt(dateData.getFullYear().toString().slice(2, 4), 10);
       },
       get MM() {
-        return this.date.getMonth() + 1;
+        return dateData.getMonth() + 1;
       },
       get DD() {
-        return this.date.getDate();
+        return dateData.getDate();
       },
       get WD() {
         const weekdaysShort = ["So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."];
-        return weekdaysShort[this.date.getDay()];
+        return weekdaysShort[dateData.getDay()];
       },
       get HH() {
-        return this.date.getHours();
+        return dateData.getHours();
       },
       get mm() {
-        return this.date.getMinutes();
+        return dateData.getMinutes();
       },
       get ss() {
-        return this.date.getSeconds();
+        return dateData.getSeconds();
       },
       get ms() {
-        return this.date.getMilliseconds();
+        return dateData.getMilliseconds();
       },
     };
     let arr = format.split(regexSplit);
