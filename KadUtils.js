@@ -915,7 +915,7 @@ export const KadRandom = {
 };
 export const KadDate = {
   getDate(date = null, { format = "DD.MM.YYYY", leadingDigit = true, reversed = false } = {}) {
-    const regexSplit = new RegExp(/([T$-/:-?{-~!"^_`\[\]])/);
+    const regexSplit = new RegExp(/([T$-/:-?{-~!"^_`\s[\]])/);
     const month = {
       January: "01",
       February: "02",
@@ -939,6 +939,8 @@ export const KadDate = {
         dateArr[i] = month.hasOwnProperty(dateArr[i]) ? month[dateArr[i]] : dateArr[i].padStart(2, "0");
       }
       dateData = new Date(dateArr.join("-"));
+    } else if (typeof date == "object") {
+      dateData = new Date(date);
     } else {
       dateData = new Date();
     }
@@ -1039,7 +1041,7 @@ export const KadTable = {
     if (KadLog.errorCheckedLevel(id == null, 2, "No ID passed")) return;
     if (KadLog.errorCheckedLevel(body != null && !Array.isArray(body), 2, "Body has to be an Array!")) return;
     if (body === null && header === null) {
-      KadLog.log("Table", id, "cleared!");
+      KadLog.logLevel(3, "Table", `"${id.id}"`, "is cleared because it has no Header or Body!");
       dbID(id).innerHTML = "";
     }
     const grid = dbID(id);
@@ -1083,7 +1085,7 @@ export const KadTable = {
           if (headerItem.skip) continue;
           const type = headerItem.type ? headerItem.type : "Lbl";
           const { wrapper, cell } = KadTable.createGridCell({ type, data: headerItem.data });
-          wrapper.classList.add("cl_gridTableWrapperHeader");
+          wrapper.classList.add("KadUtilsGridTableWrapperHeader");
           this.cellOptions({ wrapper, cell, type, settings: headerItem.settings || cell.settings || false, index: headerItem.settings?.index });
 
           this.setGridRow(wrapper, row);
@@ -1113,8 +1115,8 @@ export const KadTable = {
           if (col == columns - 1) this.styleNoBorderRight(wrapper);
           gridCells.push(wrapper);
 
-          // const nonSettings = ["type", "data", "skip", "multiColumn", "settings"];
-          // if (Object.keys(cellItem).some((key) => !nonSettings.includes(key))) KadLog.errorLevel(2, "Wrong argument! Possible Items:\n", nonSettings.join(" / "), "\nProvided:\n", Object.keys(cellItem));
+          const nonSettings = ["type", "data", "skip", "multiColumn", "settings"];
+          if (Object.keys(cellItem).some((key) => !nonSettings.includes(key))) KadLog.errorLevel(2, "Wrong argument! Possible Items:\n", nonSettings.join(" / "), "\nProvided:\n", Object.keys(cellItem));
         }
       }
       grid.append(...gridCells);
@@ -1128,11 +1130,11 @@ export const KadTable = {
       for (let i = 0; i < value.length; i++) {
         const head = header[key][i];
         data.push({
-          skip: head.skip || null,
-          type: head.type || null,
-          data: head.data || null,
-          colSpan: head.colSpan || null,
-          settings: head.settings || null,
+          skip: head.hasOwnProperty("skip") ? head.skip : null,
+          type: head.hasOwnProperty("type") ? head.type : null,
+          data: head.hasOwnProperty("data") ? head.data : null,
+          colSpan: head.hasOwnProperty("colSpan") ? head.colSpan : null,
+          settings: head.hasOwnProperty("settings") ? head.settings : null,
         });
         for (let j = 0; j < head.colSpan - 1; j++) {
           data.push({ skip: true });
@@ -1169,7 +1171,7 @@ export const KadTable = {
 
   splitDataInMultipleColumns(arr, num = 1) {
     if (num == 1) return [arr];
-    let newArrays = new Array(num).fill([]);
+    let newArrays = new Array(num).fill(null).map(() => []);
     for (let i = 0; i < arr.length; i++) {
       newArrays[i % num].push(arr[i]);
     }
@@ -1183,17 +1185,17 @@ export const KadTable = {
     let span = 1;
     if (colSpan != undefined) {
       span = colSpan;
-      if (col + span - 1 == columns - 1) wrapper.classList.add("cl_noBorderRight");
+      if (col + span - 1 == columns - 1) wrapper.classList.add("KadUtilsNoBorderRight");
     }
     wrapper.style.gridColumn = `${col + 1} / span ${span}`;
   },
   styleNoBorderBottom(wrapper) {
-    wrapper.classList.remove("cl_thinBorderBottom", "cl_thickBorderBottom");
-    wrapper.classList.add("cl_noBorderBottom");
+    wrapper.classList.remove("KadUtilsThinBorderBottom", "KadUtilsThickBorderBottom");
+    wrapper.classList.add("KadUtilsNoBorderBottom");
   },
   styleNoBorderRight(wrapper) {
-    wrapper.classList.remove("cl_thinBorderRight", "cl_thickBorderRight");
-    wrapper.classList.add("cl_noBorderRight");
+    wrapper.classList.remove("KadUtilsThinBorderRight", "KadUtilsThickBorderRight");
+    wrapper.classList.add("KadUtilsNoBorderRight");
   },
 
   createGridCell({ type, data = null, index = null }) {
@@ -1242,8 +1244,8 @@ export const KadTable = {
       return child;
     },
     Checkbox({ data } = {}) {
-      if (data == null) {
-        KadLog.log(data);
+      if (data === null) {
+        //used when no checkboxis to be displayed --> data:null , else data:true/false
         const child = document.createElement("label");
         child.type = "Lbl";
         child.innerHTML = "";
@@ -1256,7 +1258,7 @@ export const KadTable = {
     },
     Colorbox({ data } = {}) {
       const child = document.createElement("div");
-      child.classList.add("coloredBox");
+      child.classList.add("cl_KadUtilsColoredBox");
       const value = data;
       child.style.background = KadColor.formatAsCSS({ colorArray: value, type: "HSL" });
       return child;
@@ -1292,7 +1294,23 @@ export const KadTable = {
           cell.description = value;
           break;
         case "names":
-          cell.id = `id${type}_${this.toArray(value).join("_")}_${rcIndex}`;
+          {
+            let text = `id${type}`;
+            let arr = this.toArray(value);
+            let withIndex = true;
+            for (let p of arr) {
+              if (Array.isArray(p)) {
+                text += `_${p[rcIndex]}`;
+                withIndex = false;
+              } else {
+                text += `_${p}`;
+              }
+            }
+            if (withIndex) {
+              text += `_${rcIndex}`;
+            }
+            cell.id = text;
+          }
           break;
         case "class":
           cell.classList.add(...this.toArray(value));
@@ -1301,7 +1319,24 @@ export const KadTable = {
           cell.title = value[rcIndex];
           break;
         case "for":
-          cell.setAttribute("for", `${settings.for}_${rcIndex}`);
+          {
+            let text = "idCheckbox";
+            let arr = this.toArray(value);
+            let withIndex = true;
+            for (let p of arr) {
+              if (Array.isArray(p)) {
+                text += `_${p[rcIndex]}`;
+                withIndex = false;
+              } else {
+                text += `_${p}`;
+              }
+            }
+            if (withIndex) {
+              text += `_${rcIndex}`;
+            }
+
+            cell.setAttribute("for", text);
+          }
           break;
         case "font":
           if (this.toArray(value).includes("bold")) {
@@ -1322,28 +1357,28 @@ export const KadTable = {
         case "thinBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("cl_thinBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("cl_thinBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("cl_thinBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("cl_thinBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsThinBorderTop");
+            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsThinBorderRight");
+            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsThinBorderBottom");
+            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsThinBorderLeft");
           }
           break;
         case "thickBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("cl_thickBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("cl_thickBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("cl_thickBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("cl_thickBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsThickBorderTop");
+            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsThickBorderRight");
+            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsThickBorderBottom");
+            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsThickBorderLeft");
           }
           break;
         case "noBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("cl_noBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("cl_noBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("cl_noBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("cl_noBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsNoBorderTop");
+            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsNoBorderRight");
+            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsNoBorderBottom");
+            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsNoBorderLeft");
           }
           break;
         case "backgroundColor":
@@ -1374,11 +1409,15 @@ export const KadTable = {
         // functions -- combined wrapper <-> cell
         case "onclick":
           let data = this.toArray(value);
-          if (data.length > 1) {
-            const callback = data.splice(0, 1)[0];
-            wrapper.addEventListener("click", () => callback(...data), false);
+          if (data.length == 1) {
+            wrapper.addEventListener("click", () => value(rcIndex, cell), false);
           } else {
-            wrapper.addEventListener("click", () => value(rcIndex), false);
+            const callback = data[0];
+            if (Array.isArray(data[1])) {
+              wrapper.addEventListener("click", () => callback(data[1][rcIndex], cell), false);
+            } else {
+              wrapper.addEventListener("click", () => callback(data[1], cell), false);
+            }
           }
           break;
         case "onmouseover":
@@ -1521,7 +1560,7 @@ export const KadTable = {
     Colbox(opt) {
       const child = document.createElement("div");
       opt.type = "Colbox";
-      child.classList.add("coloredBox");
+      child.classList.add("cl_KadUtilsColoredBox");
       child.style.background = KadColor.formatAsCSS({ colorArray: opt.color, type: "HSL" });
       return child;
     },
