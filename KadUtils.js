@@ -255,7 +255,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       } else {
         if (animated.timer != null) clearTimeout(animated.timer);
         animated.timer = null;
-        typingAnimation("textContent");
+        typingAnimation(id, "textContent");
       }
     };
     id.KadSetHTML = function (text = null) {
@@ -267,12 +267,12 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       } else {
         if (animated.timer != null) clearTimeout(animated.timer);
         animated.timer = null;
-        typingAnimation("innerHTML");
+        typingAnimation(id, "innerHTML");
       }
     };
   }
-  // ----
-  function typingAnimation(setType) {
+
+  function typingAnimation(id, setType) {
     let writtenText = "";
     let tokenIndex = 0;
     const tokenlist = animated.textContent;
@@ -304,8 +304,8 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
         writtenText += `${animated.delimiter}`;
         animated.timer = setTimeout(newToken, nextTime);
       }
-      idDiv_News_Text[setType] = writtenText;
-      KadDOM.scrollToBottom(idDiv_News_Text);
+      id[setType] = writtenText;
+      KadDOM.scrollToBottom(id);
     }
     newToken();
   }
@@ -533,7 +533,6 @@ export const KadCSS = {
    * @returns {*}
    */
   getRoot({ value, noUnit = true, RemToPx = false } = {}) {
-    //  getCssRoot("navbarHeight", return only noUnit=true)
     const obj = `--${value}`;
     const valOrig = getComputedStyle(document.body).getPropertyValue(obj);
     const unit = valOrig.match(/[a-zA-Z]{1,}/g);
@@ -557,7 +556,7 @@ export const KadDOM = {
       top: 0,
       behavior: "smooth",
       block: "nearest",
-      inline: "start", //start
+      inline: "start",
     });
   },
   scrollToBottom(id) {
@@ -565,14 +564,14 @@ export const KadDOM = {
       top: dbID(id).scrollHeight,
       behavior: "smooth",
       block: "nearest",
-      inline: "start", //start
+      inline: "start",
     });
   },
   scrollInView(id) {
     dbID(id).scrollIntoView({
       behavior: "smooth",
       block: "nearest",
-      inline: "start", //start
+      inline: "start",
     });
   },
   getImgPath(name) {
@@ -603,7 +602,7 @@ export const KadDOM = {
         const name = dirName[dir + 1];
         const img = document.createElement("img");
         img.classList.add(`img_${name}`);
-        // img.setAttribute("alt", `${name}.svg`);
+        // img.setAttribute("alt", `${name}.svg`); // <-- this diesnt work in safari for what ever reason...
         btn.appendChild(img);
       }
     }
@@ -674,7 +673,7 @@ export const KadDOM = {
       const h = Number(obj.value.slice(0, 2));
       const m = Number(obj.value.slice(3, 5));
       let time = m + h * 60 + dir;
-      // time += time % 5 == 0 ? dir * 5 : dir;
+      // time += time % 5 == 0 ? dir * 5 : dir;  // <-- used to skip to next 5/10 number... confusing->deactivated
       const t = KadDate.minutesToObj(time);
       obj.value = `${t.h}:${t.m}`;
     }
@@ -881,7 +880,6 @@ export const KadRandom = {
     return Math.floor(Math.random() * Object.keys(obj).length);
   },
   randomObject(obj, top = null) {
-    // takes a single Number, an Array or an Object
     if (typeof obj == "number") return KadRandom.randomObject(KadArray.arrayFromNumber(obj, top));
     if (typeof obj == "string") return obj[KadRandom.randomIndex(obj)];
     if (Array.isArray(obj) && obj.length <= 0) return null;
@@ -889,7 +887,7 @@ export const KadRandom = {
     const objKeys = Object.keys(obj);
     return obj[objKeys[KadRandom.randomIndex(objKeys)]];
   },
-  randomObjectCentered(obj, top = null, iterations = 1) {
+  randomObjectCentered(obj, top = null, iterations = 2) {
     let sum = 0;
     for (let i = 0; i < iterations; i++) {
       sum += Random.randomObject(obj, top);
@@ -1058,6 +1056,7 @@ export const KadTable = {
 
     let rows = 0;
     let columns = 0;
+    let multiColumnCount = 0;
     if (body) {
       columns = this.bodyHandleMultipleColumns(body, columns);
       for (let item of body) {
@@ -1102,9 +1101,15 @@ export const KadTable = {
         } else if (body != null) {
           const bodyRow = row - rowHeaderShift;
           const type = cellItem.type ? cellItem.type : "Lbl";
-          const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data, index: bodyRow });
+          if (cellItem.multiColumn) {
+            if (multiColumnCount == 0) {
+              multiColumnCount = cellItem.multiColumn;
+            }
+            multiColumnCount--;
+          }
+          const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data, index: bodyRow, multiColumnCount });
           wrapper.classList.add("cl_gridTableWrapper");
-          this.cellOptions({ wrapper, cell, type, settings: cellItem.settings, index: bodyRow });
+          this.cellOptions({ wrapper, cell, type, settings: cellItem.settings, index: bodyRow, multiColumnCount });
 
           cell.classList.add("cl_gridTableItem");
 
@@ -1149,8 +1154,12 @@ export const KadTable = {
     let col = columns;
     for (let b = body.length - 1; b >= 0; b--) {
       let item = body[b];
-      if (item.multiColumn) {
-        const arr = this.splitDataInMultipleColumns(item.data, item.multiColumn);
+      if (item.multiColumn && item.multiColumn > 1) {
+        KadLog.logLevel(4);
+        let arr = new Array(item.multiColumn).fill(null).map(() => []);
+        for (let i = 0; i < item.data.length; i++) {
+          arr[i % item.multiColumn].push(item.data[i]);
+        }
         for (let i = 0; i < arr.length; i++) {
           col++;
           if (i > 0) {
@@ -1168,16 +1177,6 @@ export const KadTable = {
     }
     return col;
   },
-
-  splitDataInMultipleColumns(arr, num = 1) {
-    if (num == 1) return [arr];
-    let newArrays = new Array(num).fill(null).map(() => []);
-    for (let i = 0; i < arr.length; i++) {
-      newArrays[i % num].push(arr[i]);
-    }
-    return newArrays;
-  },
-
   setGridRow(wrapper, row) {
     wrapper.style.gridRow = row + 1;
   },
@@ -1197,7 +1196,6 @@ export const KadTable = {
     wrapper.classList.remove("KadUtilsThinBorderRight", "KadUtilsThickBorderRight");
     wrapper.classList.add("KadUtilsNoBorderRight");
   },
-
   createGridCell({ type, data = null, index = null }) {
     const wrapper = document.createElement("div");
     if (KadLog.errorCheckedLevel(!Object.keys(KadTable.gridCells).includes(type), 2, "Unsupported Type: ", type, "\nSupported types:\n-", Object.keys(KadTable.gridCells).join("\n- "))) return;
@@ -1239,6 +1237,17 @@ export const KadTable = {
       const img = document.createElement("img");
       img.type = "Img";
       img.src = KadDOM.getImgPath(data);
+      child.appendChild(img);
+      child.style.padding = 0;
+      return child;
+    },
+    ButtonUrlImage({ data } = {}) {
+      const child = document.createElement("Button");
+      child.type = "Buton";
+      const img = document.createElement("img");
+      img.type = "Img";
+      img.setAttribute("referrerpolicy", "no-referrer");
+      img.src = data;
       child.appendChild(img);
       child.style.padding = 0;
       return child;
@@ -1404,6 +1413,9 @@ export const KadTable = {
         case "uiType":
         case "uiFlex":
         case "uiFilter":
+          if (["ButtonImage", "ButtonUrlImage"].includes(type)) {
+            cell.childNodes[0].setAttribute(key, value);
+          }
           cell.setAttribute(key, value);
           break;
         // functions -- combined wrapper <-> cell
@@ -1439,6 +1451,11 @@ export const KadTable = {
 
   //
   // old Table
+  // EXPANSION
+  // KAIHANGA
+  // PORMULA
+  // LOTTO
+  // LINAHA
   //
   clear(id) {
     const obj = dbID(id);
