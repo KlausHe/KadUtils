@@ -500,7 +500,7 @@ export const KadFile = {
     if (callback == null) return urlData;
     if (urlData.error != null) {
       if (errorCallback == null) {
-        log("no ErrorCallback() for", url, "but an Error occured!");
+        KadLog.log("no ErrorCallback() for", url, "but an Error occured!");
         return;
       }
       errorCallback(urlData.error);
@@ -1276,7 +1276,7 @@ export const KadTable = {
       const child = document.createElement("img");
       child.type = "Img";
       child.setAttribute("referrerpolicy", "no-referrer");
-      child.src = data;
+      child.src = data || "";
       return child;
     },
     KADImg({ data } = {}) {
