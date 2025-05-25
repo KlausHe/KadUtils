@@ -575,7 +575,7 @@ export const KadDOM = {
     });
   },
   getImgPath(name) {
-    return `Data/Images/SVG/${name}.svg`;
+    return `Data/Images/${name}.svg`;
   },
   htmlSetButtonType(id = null) {
     if (id && dbID(id).nameTag == "BUTTON") {
