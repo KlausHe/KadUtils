@@ -1155,7 +1155,6 @@ export const KadTable = {
     for (let b = body.length - 1; b >= 0; b--) {
       let item = body[b];
       if (item.multiColumn && item.multiColumn > 1) {
-        KadLog.logLevel(4);
         let arr = new Array(item.multiColumn).fill(null).map(() => []);
         for (let i = 0; i < item.data.length; i++) {
           arr[i % item.multiColumn].push(item.data[i]);
