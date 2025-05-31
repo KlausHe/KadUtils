@@ -21,7 +21,7 @@ export function objectLength(obj) {
   return Object.keys(obj).length;
 }
 export function hostDebug() {
-  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  return true ? ["localhost", "127.0.0.1"].includes(window.location.hostname) : false;
 }
 
 export function getFavicon(url, size = 15) {
@@ -396,15 +396,11 @@ export const KadLog = {
     const l = Math.min(Math.max(0, level + 2), levelString.length - 2); // "+2" to ignore log-chain in KadUtils
     let arr = levelString[l].split(/[@://]{1,}/);
     const fileIndex = arr.findIndex((e) => e.includes(".js"));
-    let text = "";
     let path = "/";
     for (let i = 4; i < fileIndex; i++) {
       path += `${arr[i]}/`;
     }
-    text += `${path}`;
-    text += `${arr[fileIndex]}: `;
-    text += `${arr[0]}()\n`;
-    text += `Ln:${arr[fileIndex + 1]}\n`;
+    const text = `${path}${arr[fileIndex]}: ${arr[0]}()\nLn:${arr[fileIndex + 1]}\n`;
     return { text };
   },
   drawLog(error, level, ...args) {
@@ -520,6 +516,44 @@ export const KadFile = {
     } catch (err) {
       urlData.error = err;
     }
+  },
+
+  /**
+   *
+   *
+   * @param {*} data
+   * @param {('text'|'json'|'map')} type
+   * @param {string} [fileName="KadFile"]
+   */
+  download(data, type = "json", fileName = "KadFile") {
+    const file = {
+      text: {
+        get Blob() {
+          return new Blob([data], { type: "text/plain" });
+        },
+        postfix: "txt",
+      },
+      json: {
+        get Blob() {
+          return new Blob([JSON.stringify(data)], { type: "application/json" });
+        },
+        postfix: "json",
+      },
+      map: {
+        get Blob() {
+          return new Blob([JSON.stringify(Array.from(data))], { type: "application/json" });
+        },
+        postfix: "json",
+      },
+    };
+    if (KadLog.errorChecked(!Object.keys(file).includes(type), `Type '${type}' is not supported! Supported types:\n${Object.keys(file).join(", ")}`)) {
+      return null;
+    }
+    const ref = document.createElement("a");
+    ref.href = URL.createObjectURL(file[type].Blob);
+    ref.download = `${fileName}.${file[type].postfix}`;
+    ref.click();
+    URL.revokeObjectURL(ref.href);
   },
 };
 export const KadCSS = {
@@ -851,8 +885,11 @@ export const KadArray = {
       else return Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev;
     });
   },
-  sortArrayByKey({ array, keys = [], inverse = false, caseSensitive = false } = {}) {
-    const keyArray = Array.isArray(keys) ? keys : [keys];
+  sortArrayByKey({ array, keys = [], key = null, inverse = false, caseSensitive = false } = {}) {
+    if (KadLog.errorChecked(key == null && keys.length == 0, "No 'Key' or 'Keys' to sort passed!")) return;
+    if (KadLog.errorChecked(Array.isArray(key), "'key' should not be an array! Use 'keys' instead")) return;
+    let keyArray = key == null ? keys : [key];
+
     let arr = Array.from(array);
     return arr.sort((a, b) => {
       let valueA = a;
