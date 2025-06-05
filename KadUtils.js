@@ -1787,17 +1787,13 @@ export const KadColor = {
   },
   formatAsCSS({ colorArray, type = "HSL" } = {}) {
     if (typeof colorArray === "string") return `${colorArray.toUpperCase()}`;
-    const typePostfix = KadColor.types[type].postfix;
-    let retString = `${type.toLowerCase()}(`;
-    for (let i = 0; i < colorArray.length; i++) {
-      if (i > typePostfix.length) {
-        retString += ` / ${colorArray[i]}`;
-      } else {
-        retString += ` ${colorArray[i]}${typePostfix[i]}`;
-      }
+    const ca = colorArray;
+    const pf = KadColor.types[type].postfix;
+    if (colorArray.length > pf.length) {
+      return `${type.toLowerCase()}(${ca[0]}${pf[0]} ${ca[1]}${pf[1]} ${ca[2]}${pf[2]} / ${ca[3]})`;
+    } else {
+      return `${type.toLowerCase()}(${ca[0]}${pf[0]} ${ca[1]}${pf[1]}  ${ca[2]}${pf[2]})`;
     }
-    retString += ")";
-    return retString;
   },
   HEXtoRGB(HEX) {
     let rgb = [];
