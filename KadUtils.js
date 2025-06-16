@@ -965,7 +965,6 @@ export const KadDate = {
       November: "11",
       December: "12",
     };
-
     let dateData = null;
     if (typeof date == "string") {
       let dateArr = date.split(regexSplit);
@@ -974,7 +973,7 @@ export const KadDate = {
         dateArr[i] = month.hasOwnProperty(dateArr[i]) ? month[dateArr[i]] : dateArr[i].padStart(2, "0");
       }
       dateData = new Date(dateArr.join("-"));
-    } else if (typeof date == "object") {
+    } else if (typeof date == "object" || typeof date == "number") {
       dateData = new Date(date);
     } else {
       dateData = new Date();
