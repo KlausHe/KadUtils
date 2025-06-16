@@ -966,15 +966,19 @@ export const KadDate = {
       December: "12",
     };
     let dateData = null;
-    if (typeof date == "string") {
+    if (date === null) {
+      dateData = new Date();
+    } else if (typeof date == "number") {
+      dateData = new Date(date);
+    } else if (typeof date == "object") {
+      dateData = new Date(date);
+    } else if (typeof date == "string") {
       let dateArr = date.split(regexSplit);
       dateArr = [dateArr[0], dateArr[2], dateArr[4]];
       for (let i = 0; i < dateArr.length; i++) {
         dateArr[i] = month.hasOwnProperty(dateArr[i]) ? month[dateArr[i]] : dateArr[i].padStart(2, "0");
       }
       dateData = new Date(dateArr.join("-"));
-    } else if (typeof date == "object" || typeof date == "number") {
-      dateData = new Date(date);
     } else {
       dateData = new Date();
     }
