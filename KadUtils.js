@@ -850,14 +850,14 @@ export const KadArray = {
     }
     return arrX;
   },
-  createIndexedArray(x, y = null) {
+  createIndexedArray(x, y = null, offset = 0) {
     if (y == null) {
-      return new Array(x).fill(0).map((n, i) => i);
+      return new Array(x).fill(0).map((n, i) => i + offset);
     }
     let arrXY = [];
     for (let i = 0; i < x; i++) {
       for (let j = 0; j < y; j++) {
-        arrXY.push([i, j]);
+        arrXY.push([i + offset, j + offset]);
       }
     }
     return arrXY;
