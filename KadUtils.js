@@ -909,6 +909,18 @@ export const KadArray = {
       }
     });
   },
+  getIndexByKey(array, key, value) {
+    for (let i = 0; i < array.length; i++) {
+      if (array[i][key] === value) return i;
+    }
+    return null;
+  },
+  getElementbyKey(array, key, value) {
+    for (let i = 0; i < array.length; i++) {
+      if (array[i][key] === value) return array[i];
+    }
+    return null;
+  },
 };
 export const KadRandom = {
   randomIndex(obj) {
