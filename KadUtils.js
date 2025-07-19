@@ -172,7 +172,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
 
   // add reset-function
   if (["select-one", "select"].includes(type)) {
-    id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null } = {}) {
+    id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, textContent = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       startIndex = selStartIndex != null ? selStartIndex : startIndex;
       startValue = selStartValue != null ? selStartValue : startValue;
@@ -208,7 +208,11 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
           if (select[1] == "index") id.selectedIndex = select[0];
         }
       }
-      return checkReturn(startIndex, startValue)[0];
+      if (textContent) {
+        return id.options[id.selectedIndex].value;
+      } else {
+        return checkReturn(startIndex, startValue)[0];
+      }
     };
   } else if (["time", "date", "datetime-local"].includes(type)) {
     id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
