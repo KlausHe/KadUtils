@@ -1091,7 +1091,27 @@ export const KadString = {
   },
 };
 export const KadTable = {
-  createHTMLGrid({ id = null, header = null, body = null } = {}) {
+  CSSGrid: {
+    tableMain: "KadUtilsGridTable",
+    tableWrapperHeader: "KadUtilsGridTableWrapperHeader",
+    tableWrapperBody: "KadUtilsTableWrapper",
+    tableWrapperItem: "KadUtilsTableItem",
+    borderTopNone: "KadUtilsBorderTopNone",
+    borderTopThin: "KadUtilsBorderTopThin",
+    borderTopThick: "KadUtilsBorderTopThick",
+    borderRightNone: "KadUtilsBorderRightNone",
+    borderRightThin: "KadUtilsBorderRightThin",
+    borderRightThick: "KadUtilsBorderRightThick",
+    borderBottomNone: "KadUtilsBorderBottomNone",
+    borderBottomThin: "KadUtilsBorderBottomThin",
+    borderBottomThick: "KadUtilsBorderBottomThick",
+    borderLeftNone: "KadUtilsBorderLeftNone",
+    borderLeftThin: "KadUtilsBorderLeftThin",
+    borderLeftThick: "KadUtilsBorderLeftThick",
+  },
+  createHTMLGrid({ id = null, header = null, body = null, CSSGrid = {} } = {}) {
+    this.CSSGrid = { ...this.CSSGrid, ...CSSGrid };
+
     if (KadLog.errorCheckedLevel(id == null, 2, "No ID passed")) return;
     if (KadLog.errorCheckedLevel(body != null && !Array.isArray(body), 2, "Body has to be an Array!")) return;
     if (body === null && header === null) {
@@ -1100,7 +1120,7 @@ export const KadTable = {
     }
     const grid = dbID(id);
     grid.innerHTML = "";
-    grid.classList.add("cl_gridTable");
+    grid.classList.add(this.CSSGrid.tableMain);
 
     let headerData = [];
     let headerAvailable = header != null;
@@ -1140,7 +1160,7 @@ export const KadTable = {
           if (headerItem.skip) continue;
           const type = headerItem.type ? headerItem.type : "Lbl";
           const { wrapper, cell } = KadTable.createGridCell({ type, data: headerItem.data });
-          wrapper.classList.add("KadUtilsGridTableWrapperHeader");
+          wrapper.classList.add(this.CSSGrid.tableWrapperHeader, this.CSSGrid.borderBottomThick, this.CSSGrid.borderRightThin);
           this.cellOptions({ wrapper, cell, type, settings: headerItem.settings || cell.settings || false, index: headerItem.settings?.index });
 
           this.setGridRow(wrapper, row);
@@ -1164,10 +1184,10 @@ export const KadTable = {
             multiColumnCount--;
           }
           const { wrapper, cell } = KadTable.createGridCell({ type, data: cellItem.data, index: bodyRow, multiColumnCount });
-          wrapper.classList.add("cl_gridTableWrapper");
+          wrapper.classList.add(this.CSSGrid.tableWrapperBody, this.CSSGrid.borderBottomThin, this.CSSGrid.borderRightThin);
           this.cellOptions({ wrapper, cell, type, settings: cellItem.settings, index: bodyRow, multiColumnCount });
 
-          cell.classList.add("cl_gridTableItem");
+          cell.classList.add(this.CSSGrid.tableWrapperItem);
 
           this.setGridRow(wrapper, row);
           this.setGridColumn(wrapper, col, columns, cellItem.colSpan);
@@ -1235,21 +1255,22 @@ export const KadTable = {
   setGridRow(wrapper, row) {
     wrapper.style.gridRow = row + 1;
   },
+
   setGridColumn(wrapper, col, columns, colSpan = undefined) {
     let span = 1;
     if (colSpan != undefined) {
       span = colSpan;
-      if (col + span - 1 == columns - 1) wrapper.classList.add("KadUtilsNoBorderRight");
+      if (col + span - 1 == columns - 1) wrapper.classList.add(this.CSSGrid.borderRightNone);
     }
     wrapper.style.gridColumn = `${col + 1} / span ${span}`;
   },
   styleNoBorderBottom(wrapper) {
-    wrapper.classList.remove("KadUtilsThinBorderBottom", "KadUtilsThickBorderBottom");
-    wrapper.classList.add("KadUtilsNoBorderBottom");
+    wrapper.classList.remove(this.CSSGrid.borderBottomThin, this.CSSGrid.borderBottomThick);
+    wrapper.classList.add(this.CSSGrid.borderBottomNone);
   },
   styleNoBorderRight(wrapper) {
-    wrapper.classList.remove("KadUtilsThinBorderRight", "KadUtilsThickBorderRight");
-    wrapper.classList.add("KadUtilsNoBorderRight");
+    wrapper.classList.remove(this.CSSGrid.borderRightThin, this.CSSGrid.borderRightThick);
+    wrapper.classList.add(this.CSSGrid.borderRightNone);
   },
   createGridCell({ type, data = null, index = null }) {
     const wrapper = document.createElement("div");
@@ -1421,28 +1442,28 @@ export const KadTable = {
         case "thinBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsThinBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsThinBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsThinBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsThinBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add(this.CSSGrid.borderTopThin);
+            if (valueArray.includes("right")) wrapper.classList.add(this.CSSGrid.borderRightThin);
+            if (valueArray.includes("bottom")) wrapper.classList.add(this.CSSGrid.borderBottomThin);
+            if (valueArray.includes("left")) wrapper.classList.add(this.CSSGrid.borderLeftThin);
           }
           break;
         case "thickBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsThickBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsThickBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsThickBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsThickBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add(this.CSSGrid.borderTopThick);
+            if (valueArray.includes("right")) wrapper.classList.add(this.CSSGrid.borderRightThick);
+            if (valueArray.includes("bottom")) wrapper.classList.add(this.CSSGrid.borderBottomThick);
+            if (valueArray.includes("left")) wrapper.classList.add(this.CSSGrid.borderLeftThick);
           }
           break;
         case "noBorder":
           {
             let valueArray = this.toArray(value);
-            if (valueArray.includes("top")) wrapper.classList.add("KadUtilsNoBorderTop");
-            if (valueArray.includes("right")) wrapper.classList.add("KadUtilsNoBorderRight");
-            if (valueArray.includes("bottom")) wrapper.classList.add("KadUtilsNoBorderBottom");
-            if (valueArray.includes("left")) wrapper.classList.add("KadUtilsNoBorderLeft");
+            if (valueArray.includes("top")) wrapper.classList.add(this.CSSGrid.borderTopNone);
+            if (valueArray.includes("right")) wrapper.classList.add(this.CSSGrid.borderRightNone);
+            if (valueArray.includes("bottom")) wrapper.classList.add(this.CSSGrid.borderBottomNone);
+            if (valueArray.includes("left")) wrapper.classList.add(this.CSSGrid.borderLeftNone);
           }
           break;
         case "backgroundColor":
