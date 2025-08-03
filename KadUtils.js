@@ -91,6 +91,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   let startValue = selStartValue;
   let reset = resetValue;
   let animated = {
+    static: objectLength(animatedText) === 0,
     animate: null,
     singleLetter: false,
     delimiter: "...",
@@ -249,9 +250,12 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   id.KadReset(); //call reset() on startup to initialize reset-Values
 
   if (["DIV", "LABEL"].includes(type)) {
-    animated.textContent;
     id.KadSetText = function (text = null) {
       if (text) animated.textContent = text;
+      if (animated.static) {
+        id.textContent = animated.textContent;
+        return;
+      }
       id.style.cursor = "pointer";
       id.addEventListener("click", toggleTetxAnimationText, { once: true });
       if (!animated.animate) {
@@ -264,6 +268,10 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
     };
     id.KadSetHTML = function (text = null) {
       if (text) animated.textContent = text;
+      if (animated.static) {
+        id.innerHTML = animated.textContent;
+        return;
+      }
       id.style.cursor = "pointer";
       id.addEventListener("click", toggleTetxAnimationHtml, { once: true });
       if (!animated.animate) {
@@ -836,6 +844,17 @@ export const KadValue = {
     let a = low || arrayMin;
     let b = high || arrayMax;
     constrain(val, a, b);
+  },
+  numberInRange(value, ...range) {
+    if (range.length == 1) {
+      return !(value < -range[0] || value > range[0]);
+    }
+    if (range.length > 1) {
+      return !(value < range[0] || value > range[1]);
+    }
+  },
+  numberInBound(value, target, offset) {
+    return this.numberInRange(value, target - offset, target + offset);
   },
 };
 export const KadArray = {
