@@ -949,6 +949,7 @@ export const KadRandom = {
   randomIndex(obj) {
     if (typeof obj == "string") return Math.floor(Math.random() * obj.length);
     if (Array.isArray(obj)) return Math.floor(Math.random() * obj.length);
+    if (!Number.isNaN(obj)) return Math.floor(Math.random() * obj);
     return Math.floor(Math.random() * Object.keys(obj).length);
   },
   randomObject(obj, top = null) {
