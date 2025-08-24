@@ -82,7 +82,11 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   };
 
   const type = id.type ? id.type : id.nodeName;
-  if (fn) dbID(id).addEventListener(action || typeAction[type], fn);
+  if (fn) id.addEventListener(action || typeAction[type], fn);
+
+  // if (["submit", "button", "BUTTON"].includes(type)) {
+  //   id.type = "button";
+  // }
 
   // save initial parameters
   let list = selList;
@@ -283,6 +287,27 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       }
     };
   }
+  if (["button", "submit"].includes(type)) {
+    id.KadButtonColor = function (state = null) {
+      if (state === null) id.classList.remove("btnPositive", "btnNegative", "btnBasecolor");
+      else if (state === "positive") id.classList.add("btnPositive");
+      else if (state === "negative") id.classList.add("btnNegative");
+      else if (state === "colored") id.classList.add("btnBasecolor");
+    };
+    id.KadSetText = function (text = null) {
+      id.textContent = text;
+    };
+  }
+
+  if (["text", "email", "password", "textarea", "number"].includes(type)) {
+    id.KadSetValue = function (text = null) {
+      if (text) id.value = text;
+    };
+  }
+  id.KadEnable = function (state = true) {
+    if (state) id.removeAttribute("disabled");
+    else id.setAttribute("disabled", "true");
+  };
 
   function typingAnimation(id, setType) {
     let writtenText = "";
