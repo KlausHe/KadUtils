@@ -44,7 +44,7 @@ export function copyToClipboard(text, enabled = true) {
 
 /**
  * @export
- * @param {{ id: HTMLElement; action?: string; fn?: function; selGroup?: {}; selList?: {}; selStartIndex?: number; selStartValue?: string; dbList?: {}; resetValue?: any; animatedText?: { animate: boolean; singleLetter: boolean; delimiter:string}; dateOpts?: { ...; }; domOpts?: {}; dataset?: {}; }} [param0={}]
+ * @param {{ id: HTMLElement; action?: string; fn?: function; selGroup?: {}; selList?: {}; selStartIndex?: number; selStartValue?: string; dbList?: {}; btnCallbacks: [[]]; resetValue?: any; animatedText?: { animate: boolean; singleLetter: boolean; delimiter:string}; dateOpts?: { ...; }; domOpts?: {}; dataset?: {}; }} [param0={}]
  * @param {HTMLElement} param0.id
  * @param {string} [param0.action=null]
  * @param {function} [param0.fn=null]
@@ -53,6 +53,7 @@ export function copyToClipboard(text, enabled = true) {
  * @param {number} [param0.selStartIndex=null]
  * @param {string} [param0.selStartValue=null]
  * @param {array} [param0.dbList=[]]
+ * @param {array} [param0.btnCallbacks=[]]
  * @param {string|number} [param0.resetValue=null]
  * @param {{ animate: boolean; singleLetter:boolean; delimiter:string }} [param0.animatedText={ animate: null, singleLetter: false, delimiter:"..." }]
  * @param {{ format: string; dateObject: object; }} [param0.dateOpts={ format: null, dateObject: null }]
@@ -60,7 +61,7 @@ export function copyToClipboard(text, enabled = true) {
  * @param {array} [param0.dataset=[]]
  * @returns
  */
-export function initEL({ id, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, dataset = [] } = {}) {
+export function initEL({ id, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, dataset = [] } = {}) {
   if (KadLog.errorChecked(typeof id === "string", "ID is a string but should be an HTML-Object")) return;
   const typeAction = {
     text: "input",
@@ -84,15 +85,13 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   const type = id.type ? id.type : id.nodeName;
   if (fn) id.addEventListener(action || typeAction[type], fn);
 
-  // if (["submit", "button", "BUTTON"].includes(type)) {
-  //   id.type = "button";
-  // }
-
   // save initial parameters
   let list = selList;
   let groupList = selGroup;
   let startIndex = selStartIndex;
   let startValue = selStartValue;
+  let callbacks = btnCallbacks;
+  let callbackIndex = 0;
   let reset = resetValue;
   let animated = {
     static: objectLength(animatedText) === 0,
@@ -243,6 +242,19 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       if (dbList.length > 0) makeDBlist(dbList);
       return reset;
     };
+  } else if (["button", "submit"].includes(type)) {
+    id.KadReset = function ({ resetValue = null } = {}) {
+      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
+      reset = resetValue != null ? resetValue : reset;
+      KadDOM.resetInput(id, reset, domOpts);
+      if (callbacks.length > 0) {
+        callbackIndex = 0;
+        let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
+        id.textContent = callbacks[callbackIndexNext][0];
+        return callbackIndexNext;
+      }
+      return reset;
+    };
   } else {
     id.KadReset = function ({ resetValue = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
@@ -296,6 +308,13 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
     };
     id.KadSetText = function (text = null) {
       id.textContent = text;
+    };
+    id.KadNext = function () {
+      callbackIndex = (callbackIndex + 1) % callbacks.length;
+      let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
+      id.textContent = callbacks[callbackIndexNext][0];
+      callbacks[callbackIndex][1]();
+      return callbackIndex;
     };
   }
 
