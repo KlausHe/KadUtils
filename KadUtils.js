@@ -209,8 +209,8 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
               id.options[i].selected = true;
             }
           }
-          if (select[1] == "index") id.selectedIndex = select[0];
         }
+        if (select[1] == "index") id.selectedIndex = select[0];
       }
       if (textContent) {
         return id.options[id.selectedIndex].value;
@@ -248,10 +248,10 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       reset = resetValue != null ? resetValue : reset;
       KadDOM.resetInput(id, reset, domOpts);
       if (callbacks.length > 0) {
-        callbackIndex = 0;
-        let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
-        id.textContent = callbacks[callbackIndexNext][0];
-        return callbackIndexNext;
+        if (KadLog.errorChecked(callbacks.length < 2, "Button.Callbacks expects an a List  >= 2 elements!")) return;
+        callbackIndex = callbacks.length - 1;
+        id.textContent = callbacks[(callbackIndex + callbacks.length - 1) % callbacks.length][0];
+        return 0;
       }
       return reset;
     };
@@ -313,7 +313,9 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       callbackIndex = (callbackIndex + 1) % callbacks.length;
       let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
       id.textContent = callbacks[callbackIndexNext][0];
-      callbacks[callbackIndex][1]();
+      if (callbacks[callbackIndex][1]) {
+        callbacks[callbackIndex][1]();
+      }
       return callbackIndex;
     };
   }
@@ -326,6 +328,11 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   id.KadEnable = function (state = true) {
     if (state) id.removeAttribute("disabled");
     else id.setAttribute("disabled", "true");
+
+    if (["DIV", "LABEL"].includes(type)) {
+      if (state) id.KadSetText(id.textContent);
+      else id.KadSetHTML(`<del>${id.textContent}</del>`);
+    }
   };
 
   function typingAnimation(id, setType) {
@@ -425,8 +432,8 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
           opt.selected = true;
         }
       }
-      if (select[1] == "index") id.selectedIndex = select[0];
     }
+    if (select[1] == "index") id.selectedIndex = select[0];
   }
   function checkReturn(startIndex, startValue) {
     let indexNull = startIndex === null;
