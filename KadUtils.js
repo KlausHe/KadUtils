@@ -49,8 +49,8 @@ export function toArray(val) {
  *
  *
  * @export
- * @param {{ id: HTMLElement, action?: any; fn?: any; selGroup?: {}; selList?: {}; selStartIndex?: any; selStartValue?: any; dbList?: {}; btnCallbacks?: {}; resetValue?: any; animatedText?: {}; dateOpts?: {}; domOpts?: {}; uiOpts?: {}; dataset?: {}; }} [param0={}]
- * @param {HTMLElement} param0.id
+ * @param {{ id: string, action?: any; fn?: any; selGroup?: {}; selList?: {}; selStartIndex?: any; selStartValue?: any; dbList?: {}; btnCallbacks?: {}; resetValue?: any; animatedText?: {}; dateOpts?: {}; domOpts?: {}; uiOpts?: {}; dataset?: {}; }} [param0={}]
+ * @param {*} param0.id
  * @param {*} [param0.action=null]
  * @param {*} [param0.fn=null]
  * @param {{}} [param0.selGroup={}]
@@ -68,7 +68,8 @@ export function toArray(val) {
  * @returns
  */
 export function initEL({ id, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, uiOpts = {}, dataset = [] } = {}) {
-  if (KadLog.errorCheckedLevel(typeof id == "string", 3, "ID is a string but should be a HTMLElement")) return;
+  if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
+  const Element = document.getElementById(id);
   const typeAction = {
     text: "input",
     email: "input",
@@ -100,8 +101,8 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       nonSettings.join(" / ")
     );
 
-  const type = id.type ? id.type : id.nodeName;
-  if (fn) id.addEventListener(action || typeAction[type], fn);
+  const type = Element.type ? Element.type : Element.nodeName;
+  if (fn) Element.addEventListener(action || typeAction[type], fn);
 
   // save initial parameters
   let list = selList;
@@ -123,25 +124,22 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   };
   let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
+  // apply styling
+  for (let [key, value] of Object.entries(uiOpts)) {
+    Element.setAttribute(key, value);
+  }
   // fill "dataset"
   if (dataset.length > 0) {
     if (Array.isArray(dataset[0])) {
       for (let set of dataset) {
-        id.dataset[set[0]] = set[1];
+        Element.dataset[set[0]] = set[1];
       }
     } else {
-      id.dataset[dataset[0]] = dataset[1];
+      Element.dataset[dataset[0]] = dataset[1];
     }
   }
-
-  // apply styling
-  for (let [key, value] of Object.entries(uiOpts)) {
-    id.setAttribute(key, value);
-  }
-
   // fill "datalist"
   makeDBlist(dbList);
-
   // fill "Select"
   if (list.length > 0) {
     makeSelList({ list });
@@ -149,63 +147,156 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   if (objectLength(groupList) > 0) {
     makeGroupList({ groupList });
   }
-  // add GET function
+
+  // add GET
   if (["number"].includes(type)) {
-    id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+    Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
       let fail = failSafe != null ? failSafe : resetValue;
       return KadDOM.numberFromInput({ id, failSafeVal: fail, noPlaceholder });
     };
   }
   if (["text", "email", "password", "textarea"].includes(type)) {
-    if (action == "focus") return;
-    id.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-      let fail = failSafe != null ? failSafe : resetValue;
-      fail = noPlaceholder != null ? null : fail;
-      return KadDOM.stringFromInput({ id, failSafeVal: fail, noPlaceholder });
-    };
+    if (action != "focus") {
+      Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+        let fail = failSafe != null ? failSafe : resetValue;
+        fail = noPlaceholder != null ? null : fail;
+        return KadDOM.stringFromInput({ id, failSafeVal: fail, noPlaceholder });
+      };
+    }
   }
   if (["select-one", "select"].includes(type)) {
-    if (action == "focus") return;
-    id.KadGet = function ({ textContent = null, index = null } = {}) {
-      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-      if (textContent) return id.options[id.selectedIndex].textContent;
-      if (index) return id.selectedIndex;
-      return id.value;
-    };
+    if (action != "focus") {
+      Element.KadGet = function ({ textContent = null, index = null } = {}) {
+        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+        if (textContent) return Element.options[Element.selectedIndex].textContent;
+        if (index) return Element.selectedIndex;
+        return Element.value;
+      };
+    }
   }
   if (["time", "date", "datetime-local"].includes(type)) {
-    if (action == "focus") return;
-    id.KadGet = function ({ format = null, dateObject = null } = {}) {
-      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-      dateFormating.format = format != null ? format : dateFormating.format;
-      dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
+    if (action != "focus") {
+      Element.KadGet = function ({ format = null, dateObject = null } = {}) {
+        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+        dateFormating.format = format != null ? format : dateFormating.format;
+        dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
-      let returnValue = id.value;
-      if (dateFormating.format != null) {
-        returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
-      }
-      if (dateFormating.dateObject != null) {
-        returnValue = new Date(returnValue);
-      }
-      return returnValue;
-    };
+        let returnValue = Element.value;
+        if (dateFormating.format != null) {
+          returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
+        }
+        if (dateFormating.dateObject != null) {
+          returnValue = new Date(returnValue);
+        }
+        return returnValue;
+      };
+    }
   }
   if (["checkbox"].includes(type)) {
-    id.KadGet = function () {
-      return id.checked;
+    Element.KadGet = function () {
+      return Element.checked;
     };
   }
   if (["button", "submit"].includes(type)) {
-    id.KadGet = function () {
-      return id.value;
+    Element.KadGet = function () {
+      return Element.value;
     };
   }
 
-  // add reset-function
+  // add SET
+  if (["DIV", "LABEL", "p"].includes(type)) {
+    Element.KadSetText = function (text = null) {
+      if (text) animated.textContent = text;
+      if (animated.static) {
+        Element.textContent = animated.textContent;
+      } else {
+        Element.style.cursor = "pointer";
+        Element.addEventListener("click", toggleTetxAnimationText, { once: true });
+        if (!animated.animate) {
+          Element.textContent = animated.textContent;
+        } else {
+          if (animated.timer != null) clearTimeout(animated.timer);
+          animated.timer = null;
+          typingAnimation(id, "textContent");
+        }
+      }
+    };
+    Element.KadSetHTML = function (text = null) {
+      if (text) animated.textContent = text;
+      if (animated.static) {
+        Element.innerHTML = animated.textContent;
+      } else {
+        Element.style.cursor = "pointer";
+        Element.addEventListener("click", toggleTetxAnimationHtml, { once: true });
+        if (!animated.animate) {
+          Element.innerHTML = animated.textContent;
+        } else {
+          if (animated.timer != null) clearTimeout(animated.timer);
+          animated.timer = null;
+          typingAnimation(id, "innerHTML");
+        }
+      }
+    };
+  }
+  if (["button", "submit"].includes(type)) {
+    Element.KadButtonColor = function (state = null) {
+      KadDOM.btnColor(id, state);
+    };
+    Element.KadSetText = function (text = null) {
+      Element.textContent = text;
+    };
+    if (callbacks.length > 0) {
+      Element.KadNext = function () {
+        callbackIndex = (callbackIndex + 1) % callbacks.length;
+        let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
+        Element.textContent = callbacks[callbackIndexNext][0];
+        if (callbacks[callbackIndex][1]) {
+          callbacks[callbackIndex][1]();
+        }
+        return callbackIndex;
+      };
+      Element.addEventListener(action || typeAction[type], function () {
+        Element.KadNext();
+      });
+    }
+    if (Element.dataset.radio) {
+      Element.KadRadioColor = function () {
+        const buttons = document.querySelectorAll(`[data-radio~=${Element.dataset.radio}]`);
+        for (let button of buttons) {
+          button.KadButtonColor();
+        }
+        Element.KadButtonColor("positive");
+      };
+      Element.addEventListener(action || typeAction[type], function () {
+        Element.KadRadioColor();
+      });
+    }
+  }
+  if (["text", "email", "password", "textarea", "number"].includes(type)) {
+    Element.KadSetValue = function (text = null) {
+      if (text) Element.value = text;
+    };
+  }
+  if (["PROGRESS"].includes(type)) {
+    Element.KadSetValue = function (value = null) {
+      if (value) Element.setAttribute("value", value);
+    };
+    Element.KadSetMax = function (value = null) {
+      if (value) Element.setAttribute("max", value);
+    };
+    Element.KadSetMin = function (value = null) {
+      if (value) Element.setAttribute("min", value);
+    };
+    Element.KadSetAttribute = function (value = null, att) {
+      if (value) Element.setAttribute(att, value);
+    };
+  }
+
+  // add RESET
   if (["select-one", "select"].includes(type)) {
-    id.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, textContent = null } = {}) {
+    Element.KadReset = function ({ selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, textContent = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       startIndex = selStartIndex != null ? selStartIndex : startIndex;
       startValue = selStartValue != null ? selStartValue : startValue;
@@ -223,11 +314,11 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
           let data = list[i];
           let d = Array.isArray(data) ? data : [data];
           if (select[1] == "value" && d[0] == select[0]) {
-            id.options[i].selected = true;
+            Element.options[i].selected = true;
             break;
           }
         }
-        if (select[1] == "index") id.selectedIndex = select[0];
+        if (select[1] == "index") Element.selectedIndex = select[0];
       } else if (objectLength(groupList) > 0) {
         let select = checkReturn(startIndex, startValue);
         for (let [groupName, list] of Object.entries(groupList)) {
@@ -235,26 +326,26 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
             let data = list[i];
             let d = Array.isArray(data) ? data : [data];
             if (select[1] == "value" && select[0] == d[1]) {
-              id.options[i].selected = true;
+              Element.options[i].selected = true;
             }
           }
         }
-        if (select[1] == "index") id.selectedIndex = select[0];
+        if (select[1] == "index") Element.selectedIndex = select[0];
       }
       if (textContent) {
-        return id.options[id.selectedIndex].value;
+        return Element.options[Element.selectedIndex].value;
       } else {
         return checkReturn(startIndex, startValue)[0];
       }
     };
   } else if (["time", "date", "datetime-local"].includes(type)) {
-    id.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
+    Element.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
       KadDOM.resetInput(id, reset, domOpts);
       dateFormating.format = format != null ? format : dateFormating.format;
       dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
-      let returnValue = id.value;
+      let returnValue = Element.value;
       if (dateFormating.format != null) {
         returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
       }
@@ -264,7 +355,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       return returnValue;
     };
   } else if (["text", "number"].includes(type)) {
-    id.KadReset = function ({ resetValue = null, dbList = [] } = {}) {
+    Element.KadReset = function ({ resetValue = null, dbList = [] } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
       KadDOM.resetInput(id, reset, domOpts);
@@ -272,111 +363,41 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       return reset;
     };
   } else if (["button", "submit"].includes(type)) {
-    id.KadReset = function ({ resetValue = null } = {}) {
+    Element.KadReset = function ({ resetValue = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
       KadDOM.resetInput(id, reset, domOpts);
       if (callbacks.length > 0) {
         if (KadLog.errorChecked(callbacks.length < 2, "Button.Callbacks expects an a List  >= 2 elements!")) return;
         callbackIndex = callbacks.length - 1;
-        id.textContent = callbacks[(callbackIndex + callbacks.length - 1) % callbacks.length][0];
+        Element.textContent = callbacks[(callbackIndex + callbacks.length - 1) % callbacks.length][0];
         return 0;
       }
       return reset;
     };
   } else {
-    id.KadReset = function ({ resetValue = null } = {}) {
+    Element.KadReset = function ({ resetValue = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
       KadDOM.resetInput(id, reset, domOpts);
       return reset;
     };
   }
-  id.KadReset(); //call reset() on startup to initialize reset-Values
+  Element.KadReset(); //call reset() on startup to initialize reset-Values
 
-  if (["DIV", "LABEL"].includes(type)) {
-    id.KadSetText = function (text = null) {
-      if (text) animated.textContent = text;
-      if (animated.static) {
-        id.textContent = animated.textContent;
-        return;
-      }
-      id.style.cursor = "pointer";
-      id.addEventListener("click", toggleTetxAnimationText, { once: true });
-      if (!animated.animate) {
-        id.textContent = animated.textContent;
-      } else {
-        if (animated.timer != null) clearTimeout(animated.timer);
-        animated.timer = null;
-        typingAnimation(id, "textContent");
-      }
-    };
-    id.KadSetHTML = function (text = null) {
-      if (text) animated.textContent = text;
-      if (animated.static) {
-        id.innerHTML = animated.textContent;
-        return;
-      }
-      id.style.cursor = "pointer";
-      id.addEventListener("click", toggleTetxAnimationHtml, { once: true });
-      if (!animated.animate) {
-        id.innerHTML = animated.textContent;
-      } else {
-        if (animated.timer != null) clearTimeout(animated.timer);
-        animated.timer = null;
-        typingAnimation(id, "innerHTML");
-      }
-    };
-  }
-  if (["button", "submit"].includes(type)) {
-    id.KadButtonColor = function (state = null) {
-      KadDOM.btnColor(id, state);
-    };
-    id.KadSetText = function (text = null) {
-      id.textContent = text;
-    };
-    if (callbacks.length > 0) {
-      id.KadNext = function () {
-        callbackIndex = (callbackIndex + 1) % callbacks.length;
-        let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
-        id.textContent = callbacks[callbackIndexNext][0];
-        if (callbacks[callbackIndex][1]) {
-          callbacks[callbackIndex][1]();
-        }
-        return callbackIndex;
-      };
-      id.addEventListener(action || typeAction[type], function () {
-        id.KadNext();
-      });
-    }
-    if (id.dataset.radio) {
-      id.KadRadioColor = function () {
-        const buttons = document.querySelectorAll(`[data-radio~=${id.dataset.radio}]`);
-        for (let button of buttons) {
-          button.KadButtonColor();
-        }
-        id.KadButtonColor("positive");
-      };
-      id.addEventListener(action || typeAction[type], function () {
-        id.KadRadioColor();
-      });
-    }
-  }
-
-  if (["text", "email", "password", "textarea", "number"].includes(type)) {
-    id.KadSetValue = function (text = null) {
-      if (text) id.value = text;
-    };
-  }
-  id.KadEnable = function (state = true) {
-    if (state) id.removeAttribute("disabled");
-    else id.setAttribute("disabled", "true");
+  // add MISC
+  Element.KadEnable = function (state = true) {
+    if (state) Element.removeAttribute("disabled");
+    else Element.setAttribute("disabled", "true");
 
     if (["DIV", "LABEL"].includes(type)) {
-      if (state) id.KadSetText(id.textContent);
-      else id.KadSetHTML(`<del>${id.textContent}</del>`);
+      if (state) Element.KadSetText(Element.textContent);
+      else Element.KadSetHTML(`<del>${Element.textContent}</del>`);
     }
   };
+
+  // finished! return the HTML-Object
+  return Element;
 
   function typingAnimation(id, setType) {
     let writtenText = "";
@@ -418,22 +439,22 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
   function toggleTetxAnimationText() {
     animated.animate = !animated.animate;
     clearTimeout(animated.timer);
-    id.KadSetText();
+    Element.KadSetText();
   }
   function toggleTetxAnimationHtml() {
     animated.animate = !animated.animate;
     clearTimeout(animated.timer);
-    id.KadSetHTML();
+    Element.KadSetHTML();
   }
   function makeDBlist(dbList) {
     if (dbList.length > 0) {
-      id.addEventListener(
+      Element.addEventListener(
         "focus",
         () => {
           const datalist = document.createElement("datalist");
-          datalist.id = `idDlist_${id.id}`;
-          id.parentNode.appendChild(datalist);
-          id.setAttribute("list", datalist.id);
+          datalist.id = `idDlist_${Element.id}`;
+          Element.parentNode.appendChild(datalist);
+          Element.setAttribute("list", datalist.id);
           for (const data of dbList) {
             datalist.appendChild(new Option(data));
           }
@@ -449,12 +470,12 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       let d = Array.isArray(data) ? data : [data];
       const opt = new Option(...d);
       opt.disabled = d.length > 2 ? d[2] : false;
-      id.appendChild(opt);
+      Element.appendChild(opt);
       if (select[1] == "value" && select[0] == d[1]) {
         opt.selected = true;
       }
     }
-    if (select[1] == "index") id.selectedIndex = select[0];
+    if (select[1] == "index") Element.selectedIndex = select[0];
   }
   function makeGroupList({ groupList = {} } = {}) {
     KadDOM.clearFirstChild(id);
@@ -463,7 +484,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
       let optG;
       if (groupName) {
         optG = document.createElement("optgroup");
-        id.appendChild(optG);
+        Element.appendChild(optG);
         optG.label = groupName;
       }
       for (let data of list) {
@@ -476,7 +497,7 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
         }
       }
     }
-    if (select[1] == "index") id.selectedIndex = select[0];
+    if (select[1] == "index") Element.selectedIndex = select[0];
   }
   function checkReturn(startIndex, startValue) {
     let indexNull = startIndex === null;
@@ -494,7 +515,6 @@ export function initEL({ id, action = null, fn = null, selGroup = {}, selList = 
     if (typeString == "undefined") return false;
     if (typeString != "object") return true;
   }
-  return id;
 }
 
 export const KadLog = {
@@ -573,6 +593,20 @@ export const KadLog = {
     return true;
   },
 };
+
+function stackFunctionAt(level = 0) {
+  const levelString = Error().stack.split(/\r?\n|\r|\n/g);
+  const l = Math.min(Math.max(0, level + 1), levelString.length - 1); // "+2" to ignore log-chain in KadUtils
+  let arr = levelString[l].split(/[@://]{1,}/);
+  const fileIndex = arr.findIndex((e) => e.includes(".js"));
+  let path = "/";
+  for (let i = 4; i < fileIndex; i++) {
+    path += `${arr[i]}/`;
+  }
+  path += arr[fileIndex];
+  return { path, functionName: arr[0] };
+}
+
 export const KadFile = {
   /**
    * @async
@@ -585,11 +619,21 @@ export const KadFile = {
    * @param {function} [param0.errorCallback=null]
    * @returns {object}
    */
-  async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null } = {}) {
+
+  currentRequestTimers: {},
+
+  async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null, callbackDelay = 1000 } = {}) {
     if (KadLog.errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
     if (KadLog.errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
     if (KadLog.errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
     if (KadLog.errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to return the data is provided! use callback or variable")) return;
+
+    const requestName = stackFunctionAt(1).functionName;
+
+    if (KadFile.currentRequestTimers.hasOwnProperty(requestName)) {
+      clearTimeout(KadFile.currentRequestTimers[requestName]);
+      delete KadFile.currentRequestTimers[requestName];
+    }
 
     let urls = url != null ? [url] : urlArray;
     let vars = url != null ? [variable] : variableArray;
@@ -598,7 +642,9 @@ export const KadFile = {
     for (let i = 0; i < urls.length; i++) {
       urlData[vars[i]] = urls[i];
     }
+
     await KadFile.getDataURL(urlData);
+
     if (callback == null) return urlData;
     if (urlData.error != null) {
       if (errorCallback == null) {
@@ -608,9 +654,10 @@ export const KadFile = {
       errorCallback(urlData.error);
     } else {
       delete urlData.error;
-      callback(urlData);
+      KadFile.currentRequestTimers[requestName] = setTimeout(() => callback(urlData), callbackDelay);
     }
   },
+
   async getDataURL(urlData) {
     let vars = Object.keys(urlData);
     try {
@@ -872,22 +919,40 @@ export const KadDOM = {
   },
 };
 export const KadInteraction = {
-  focus(obj, canv = null) {
+  focus(id, canv = null) {
     if (canv != null) canv.loop();
-    dbID(obj).focus();
+    document.getElementById(id).focus();
   },
-  unfocus(obj, canv) {
-    dbID(obj).blur();
+  unfocus(id, canv) {
     if (canv != null) {
       canv.noLoop();
       canv.redraw();
     }
+    document.getElementById(id).blur();
   },
   removeContextmenu(id) {
-    dbID(id).oncontextmenu = function () {
+    const obj = document.getElementById(id);
+    obj.oncontextmenu = function () {
       return false;
     };
   },
+  //
+  // focus(obj, canv = null) {
+  //   if (canv != null) canv.loop();
+  //   dbID(obj).focus();
+  // },
+  // unfocus(obj, canv) {
+  //   dbID(obj).blur();
+  //   if (canv != null) {
+  //     canv.noLoop();
+  //     canv.redraw();
+  //   }
+  // },
+  // removeContextmenu(id) {
+  //   dbID(id).oncontextmenu = function () {
+  //     return false;
+  //   };
+  // },
 };
 export const KadValue = {
   number(value = 1, { form = null, indicator = false, leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
@@ -1226,15 +1291,17 @@ export const KadTable = {
     borderLeftThick: "KadUtilsBorderLeftThick",
   },
   createHTMLGrid({ id = null, header = null, body = null, CSSGrid = {} } = {}) {
-    this.CSSGrid = { ...this.CSSGrid, ...CSSGrid };
-
+    if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
     if (KadLog.errorCheckedLevel(id == null, 2, "No ID passed")) return;
     if (KadLog.errorCheckedLevel(body != null && !Array.isArray(body), 2, "Body has to be an Array!")) return;
+
+    this.CSSGrid = { ...this.CSSGrid, ...CSSGrid };
+    const grid = document.getElementById(id);
     if (body === null && header === null) {
-      KadLog.logLevel(3, "Table", `"${id.id}"`, "is cleared because it has no Header or Body!");
-      id.innerHTML = "";
+      KadLog.logLevel(3, "Table", `"${id}"`, "is cleared because it has no Header or Body!");
+      grid.innerHTML = "";
+      return;
     }
-    const grid = id;
     grid.innerHTML = "";
     grid.classList.add(this.CSSGrid.tableMain);
 
@@ -1261,6 +1328,7 @@ export const KadTable = {
     }
 
     grid.style.gridTemplateRows = `repeat(${rows + headerRowCount}, auto)`;
+
     for (let col = 0; col < columns; col++) {
       let cellItem = null;
       if (body) {
@@ -1274,6 +1342,7 @@ export const KadTable = {
           const headerItem = headerData[row][col];
           rowHeaderShift++;
           if (headerItem.skip) continue;
+          const index = headerItem.settings?.index || row + col * rows;
           const type = headerItem.type ? headerItem.type : "Lbl";
           const { wrapper, cell } = KadTable.createGridCell({ type, data: headerItem.data });
           wrapper.classList.add(this.CSSGrid.tableWrapperHeader, this.CSSGrid.borderBottomThick, this.CSSGrid.borderRightThin);
@@ -1948,7 +2017,7 @@ export const KadColor = {
     }
     return retString.trim();
   },
-  formatAsCSS({ colorArray, type = "HSL" } = {}) {
+  formatAsCSS({ colorArray = [], type = "HSL" } = {}) {
     if (typeof colorArray === "string") return `${colorArray.toUpperCase()}`;
     const ca = colorArray;
     const pf = KadColor.types[type].postfix;
