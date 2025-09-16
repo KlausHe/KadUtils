@@ -1,4 +1,10 @@
-nope
+# ignore everything
+*
+# just upload therse:
+!KadUtils.js
+!README.MD
+
+
 node_modules
 .env
 .DS_Store
