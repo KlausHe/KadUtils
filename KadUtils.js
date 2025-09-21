@@ -11,9 +11,8 @@ export function dbCL(id, loc = 0) {
   return document.getElementsByClassName(id)[loc];
 }
 export function dbCLStyle(id, loc = 0) {
-  // @ts-ignore
   if (loc === null) return [...document.getElementsByClassName(id)].map((s) => s.style);
-  // @ts-ignore
+
   return document.getElementsByClassName(id)[loc].style;
 }
 export function daEL(id, type, fn) {
@@ -47,31 +46,7 @@ export function toArray(val) {
   return val;
 }
 
-/**
- *
- * @author KlausHE
- *
- * @export
- * @param {{ id: string; action?: string; fn?: any; selGroup?: {}; selList?: []; selStartIndex?: any; selStartValue?: any; dbList?: []; btnCallbacks?: []; resetValue?: any; animatedText?: {}; dateOpts?: {}; domOpts?: {}; uiOpts?: {}; dataset?: []; }} param0
- * @param {string} [param0.id]
- * @param {string} [param0.action=null]
- * @param {*} [param0.fn=null]
- * @param {{}} [param0.selGroup={}]
- * @param {[]} [param0.selList=[]]
- * @param {Number} [param0.selStartIndex=null]
- * @param {String} [param0.selStartValue=null]
- * @param {[]} [param0.dbList=[]]
- * @param {[]} [param0.btnCallbacks=[]]
- * @param {String} [param0.resetValue=null]
- * @param {{}} [param0.animatedText={}]
- * @param {{}} [param0.dateOpts={}]
- * @param {{}} [param0.domOpts={}]
- * @param {{}} [param0.uiOpts={}]
- * @param {[]} [param0.dataset=[]]
- * @returns
- */
-// @ts-ignore
-export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, uiOpts = {}, dataset = [] } = {}) {
+export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, uiOpts = {}, dataset = [] }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id) };
 
@@ -105,7 +80,6 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
       "\nSuported Items:\n",
       nonSettings.join(" / ")
     );
-  // @ts-ignore
   const type = Element.HTML.type ? Element.HTML.type : Element.HTML.nodeName;
   if (fn) Element.HTML.addEventListener(action || typeAction[type], fn);
 
@@ -135,13 +109,11 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   }
   // fill "dataset"
   if (dataset.length > 0) {
-    // @ts-ignore
     if (Array.isArray(dataset[0])) {
       for (let set of dataset) {
         Element.HTML.dataset[set[0]] = set[1];
       }
     } else {
-      // @ts-ignore
       Element.HTML.dataset[dataset[0]] = dataset[1];
     }
   }
@@ -177,11 +149,11 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     if (action != "focus") {
       Element.KadGet = function ({ textContent = null, index = null } = {}) {
         if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-        // @ts-ignore
+
         if (textContent) return Element.HTML.options[Element.HTML.selectedIndex].textContent;
-        // @ts-ignore
+
         if (index) return Element.HTML.selectedIndex;
-        // @ts-ignore
+
         return Element.HTML.value;
       };
     }
@@ -193,7 +165,6 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
         dateFormating.format = format != null ? format : dateFormating.format;
         dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
-        // @ts-ignore
         let returnValue = Element.HTML.value;
         if (dateFormating.format != null) {
           returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
@@ -207,13 +178,11 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   }
   if (["checkbox"].includes(type)) {
     Element.KadGet = function () {
-      // @ts-ignore
       return Element.HTML.checked;
     };
   }
   if (["button", "submit"].includes(type)) {
     Element.KadGet = function () {
-      // @ts-ignore
       return Element.HTML.value;
     };
   }
@@ -266,7 +235,6 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
         let callbackIndexNext = (callbackIndex + 1) % callbacks.length;
         Element.HTML.textContent = callbacks[callbackIndexNext][0];
         if (callbacks[callbackIndex][1] != undefined) {
-          // @ts-ignore
           callbacks[callbackIndex][1]();
         }
         return callbackIndex;
@@ -290,14 +258,12 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   }
   if (["text", "email", "password", "textarea", "number"].includes(type)) {
     Element.KadSetValue = function (text = null) {
-      // @ts-ignore
       if (text) Element.HTML.value = text;
     };
   }
   if (["select-one", "select"].includes(type)) {
     if (action != "focus") {
       Element.KadSetIndex = function (index = null) {
-        // @ts-ignore
         Element.HTML.selectedIndex = index;
         return index;
       };
@@ -728,7 +694,7 @@ export const KadCSS = {
     const obj = `--${value}`;
     const valOrig = getComputedStyle(document.body).getPropertyValue(obj);
     const unit = valOrig.match(/[a-zA-Z]{1,}/g);
-    // @ts-ignore
+
     if (RemToPx == true && unit == "rem") {
       const size = Number(getComputedStyle(document.body).getPropertyValue("--fontSize").replace(/px/g, ""));
       const valConverted = Number(valOrig.replace(/rem/g, ""));
@@ -989,7 +955,7 @@ export const KadValue = {
       options.unitDisplay = "short";
       options.useGrouping = true;
     }
-    // @ts-ignore
+
     return Intl.NumberFormat(formating, options).format(value);
   },
   constrain(val, min = null, max = null) {
@@ -1084,7 +1050,7 @@ export const KadArray = {
     if (key !== null) keyArray = toArray(key);
 
     let arr = Array.from(array);
-    // @ts-ignore
+
     return arr.sort((a, b) => {
       let valueA = a;
       let valueB = b;
@@ -1735,6 +1701,7 @@ export const KadTable = {
   // LOTTO
   // LINAHA
   //
+
   clear(id) {
     const obj = dbID(id);
     for (let i = obj.rows.length - 1; i >= 0; i--) {
