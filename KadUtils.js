@@ -538,6 +538,23 @@ export const KadLog = {
     console.groupEnd();
   },
 
+  drawTable(error, level, ...args) {
+    if (!hostDebug()) return;
+    if (typeof level !== "number") {
+      console.error("Level has to be a Number!");
+      return false;
+    }
+    if (args.length == 0) {
+      console.group(`%cYou are here:\n%c ${this.getStackFunctionAt(level).text}`, "background: lightblue; color: black", "background: default; color: default");
+    } else if (error) {
+      console.group(`%c${this.getStackFunctionAt(level).text}`, "background: red; color: black");
+    } else {
+      console.group(`%c${this.getStackFunctionAt(level).text}`, "background: yellow; color: black");
+    }
+    if (args.length > 0) console.table(...args);
+    console.groupEnd();
+  },
+
   log(...args) {
     this.drawLog(false, 1, ...args);
   },
@@ -570,6 +587,24 @@ export const KadLog = {
   errorCheckedLevel(state, level, ...args) {
     if (!state) return false;
     this.drawLog(true, level, ...args);
+    return true;
+  },
+
+  table(...args) {
+    this.drawTable(false, 1, ...args);
+  },
+
+  tableLevel(level, ...args) {
+    this.drawTable(false, level, ...args);
+  },
+  tableChecked(state, ...args) {
+    if (!state) return false;
+    this.drawTable(false, 1, ...args);
+    return true;
+  },
+  tableCheckedLevel(state, level, ...args) {
+    if (!state) return false;
+    this.drawTable(false, level, ...args);
     return true;
   },
 };
