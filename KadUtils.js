@@ -229,6 +229,9 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     Element.KadSetText = function (text = null) {
       Element.HTML.textContent = text;
     };
+    Element.KadSetHTML = function (text = null) {
+      Element.HTML.innerHTML = text;
+    };
     if (callbacks.length > 0) {
       Element.KadNext = function () {
         callbackIndex = (callbackIndex + 1) % callbacks.length;
@@ -609,7 +612,7 @@ export const KadLog = {
   },
 };
 
-function stackFunctionAt(level = 0) {
+export function stackFunctionAt(level = 0) {
   const levelString = Error().stack.split(/\r?\n|\r|\n/g);
   const l = Math.min(Math.max(0, level + 1), levelString.length - 1); // "+2" to ignore log-chain in KadUtils
   let arr = levelString[l].split(/[@://]{1,}/);
