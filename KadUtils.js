@@ -1,5 +1,5 @@
 export function dbID(id) {
-  if (id instanceof Object) return id;
+  if (id instanceof Object) KadLog.logLevel(2, id, "should be a string!!!");
   return document.getElementById(id);
 }
 export function dbIDStyle(id) {
@@ -49,6 +49,11 @@ export function toArray(val) {
 export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, uiOpts = {}, dataset = [] }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id) };
+  const ElementHasChild = Element.HTML.hasChildNodes();
+  if (ElementHasChild) {
+    Element.FirstChild = Element.HTML.firstChild;
+    Element.ChildNodes = Element.HTML.childNodes;
+  }
 
   const typeAction = {
     text: "input",
@@ -82,7 +87,6 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     );
   const type = Element.HTML.type ? Element.HTML.type : Element.HTML.nodeName;
   if (fn) Element.HTML.addEventListener(action || typeAction[type], fn);
-
   // save initial parameters
   let list = selList;
   let groupList = selGroup;
@@ -103,29 +107,23 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   };
   let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
-  // apply styling
-  for (let [key, value] of Object.entries(uiOpts)) {
-    Element.HTML.setAttribute(key, value);
-  }
-  // fill "dataset"
-  if (dataset.length > 0) {
-    if (Array.isArray(dataset[0])) {
-      for (let set of dataset) {
-        Element.HTML.dataset[set[0]] = set[1];
-      }
-    } else {
-      Element.HTML.dataset[dataset[0]] = dataset[1];
+  // apply options
+  if (domOpts != null) {
+    // KadLog.log(domOpts);
+    for (let [key, val] of Object.entries(domOpts)) {
+      Element.HTML[key] = val;
     }
   }
+  // apply styling
+  makeAttributes(uiOpts);
+  // fill "datasets"
+  makeDatasets(dataset);
   // fill "datalist"
   makeDBlist(dbList);
   // fill "Select"
-  if (list.length > 0) {
-    makeSelList(list);
-  }
-  if (objectLength(groupList) > 0) {
-    makeGroupList(groupList);
-  }
+  makeSelList(list);
+  // fill "Grouped Select"
+  makeGroupList(groupList);
 
   // add GET
   if (["number"].includes(type)) {
@@ -135,46 +133,37 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
       return KadDOM.numberFromInput({ Element: Element.HTML, failSafeVal: fail, noPlaceholder });
     };
   }
-  if (["text", "email", "password", "textarea"].includes(type)) {
-    if (action != "focus") {
-      Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
-        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-        let fail = failSafe != null ? failSafe : resetValue;
-        fail = noPlaceholder != null ? null : fail;
-        return KadDOM.stringFromInput({ Element: Element.HTML, failSafeVal: fail, noPlaceholder });
-      };
-    }
+  if (action != "focus" && ["text", "email", "password", "textarea"].includes(type)) {
+    Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+      let fail = failSafe != null ? failSafe : resetValue;
+      fail = noPlaceholder != null ? null : fail;
+      return KadDOM.stringFromInput({ Element: Element.HTML, failSafeVal: fail, noPlaceholder });
+    };
   }
-  if (["select-one", "select"].includes(type)) {
-    if (action != "focus") {
-      Element.KadGet = function ({ textContent = null, index = null } = {}) {
-        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-
-        if (textContent) return Element.HTML.options[Element.HTML.selectedIndex].textContent;
-
-        if (index) return Element.HTML.selectedIndex;
-
-        return Element.HTML.value;
-      };
-    }
+  if (action != "focus" && ["select-one", "select"].includes(type)) {
+    Element.KadGet = function ({ textContent = null, index = null } = {}) {
+      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+      if (textContent) return Element.HTML.options[Element.HTML.selectedIndex].textContent;
+      if (index) return Element.HTML.selectedIndex;
+      return Element.HTML.value;
+    };
   }
-  if (["time", "date", "datetime-local"].includes(type)) {
-    if (action != "focus") {
-      Element.KadGet = function ({ format = null, dateObject = null } = {}) {
-        if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-        dateFormating.format = format != null ? format : dateFormating.format;
-        dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
+  if (action != "focus" && ["time", "date", "datetime-local"].includes(type)) {
+    Element.KadGet = function ({ format = null, dateObject = null } = {}) {
+      if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
+      dateFormating.format = format != null ? format : dateFormating.format;
+      dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
 
-        let returnValue = Element.HTML.value;
-        if (dateFormating.format != null) {
-          returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
-        }
-        if (dateFormating.dateObject != null) {
-          returnValue = new Date(returnValue);
-        }
-        return returnValue;
-      };
-    }
+      let returnValue = Element.HTML.value;
+      if (dateFormating.format != null) {
+        returnValue = KadDate.getDate(returnValue, { format: dateFormating.format });
+      }
+      if (dateFormating.dateObject != null) {
+        returnValue = new Date(returnValue);
+      }
+      return returnValue;
+    };
   }
   if (["checkbox"].includes(type)) {
     Element.KadGet = function () {
@@ -336,7 +325,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     Element.KadReset = function ({ resetValue = null, format = null, dateObject = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
-      KadDOM.resetInput(Element.HTML, reset, domOpts);
+      resetInput(Element.HTML, type, reset);
       dateFormating.format = format != null ? format : dateFormating.format;
       dateFormating.dateObject = dateObject != null ? dateObject : dateFormating.dateObject;
       let returnValue = Element.HTML.value;
@@ -352,7 +341,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     Element.KadReset = function ({ resetValue = null, dbList = [] } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
-      KadDOM.resetInput(Element.HTML, reset, domOpts);
+      resetInput(Element.HTML, type, reset);
       if (dbList.length > 0) makeDBlist(dbList);
       return reset;
     };
@@ -360,7 +349,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     Element.KadReset = function ({ resetValue = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
-      KadDOM.resetInput(Element.HTML, reset, domOpts);
+      resetInput(Element.HTML, type, reset);
       if (callbacks.length > 0) {
         if (KadLog.errorChecked(callbacks.length < 2, "Button.Callbacks expects an a List  >= 2 elements!")) return;
         callbackIndex = callbacks.length - 1;
@@ -373,25 +362,98 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     Element.KadReset = function ({ resetValue = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadReset() expects an object!")) return;
       reset = resetValue != null ? resetValue : reset;
-      KadDOM.resetInput(Element.HTML, reset, domOpts);
+      resetInput(Element.HTML, type, reset);
       return reset;
     };
   }
   Element.KadReset(); //call reset() on startup to initialize reset-Values
 
-  // add MISC
-  Element.KadEnable = function (state = true) {
-    if (state) Element.HTML.removeAttribute("disabled");
-    else Element.HTML.setAttribute("disabled", "true");
-
-    if (["DIV", "LABEL"].includes(type)) {
+  // add Enable
+  if (["DIV", "LABEL"].includes(type)) {
+    Element.KadEnable = function (state = true) {
       if (state) Element.KadSetText(Element.HTML.textContent);
       else Element.KadSetHTML(`<del>${Element.HTML.textContent}</del>`);
-    }
-  };
+    };
+  } else {
+    Element.KadEnable = function (state = true) {
+      if (state) Element.HTML.removeAttribute("disabled");
+      else Element.HTML.setAttribute("disabled", "true");
+    };
+  }
 
   // finished! return the HTML-Object
   return Element;
+
+  function makeAttributes(uiOpts) {
+    if (uiOpts != null) {
+      // KadLog.log(uiOpts);
+      for (let [key, value] of Object.entries(uiOpts)) {
+        Element.HTML.setAttribute(key, value);
+      }
+    }
+  }
+  function makeDatasets(dataset) {
+    if (dataset.length > 0) {
+      const datasetArray = !Array.isArray(dataset[0]) ? [dataset] : dataset;
+      for (let set of datasetArray) {
+        Element.HTML.dataset[set[0]] = set[1];
+      }
+    }
+  }
+  function makeDBlist(dbList) {
+    if (dbList.length == 0) return;
+    Element.HTML.addEventListener(
+      "focus",
+      () => {
+        const datalist = document.createElement("datalist");
+        datalist.id = `idDlist_${Element.HTML.id}`;
+        Element.HTML.parentNode.appendChild(datalist);
+        Element.HTML.setAttribute("list", datalist.id);
+        for (const data of dbList) {
+          datalist.appendChild(new Option(data));
+        }
+      },
+      { once: true }
+    );
+  }
+  function makeSelList(list = []) {
+    if (list.length == 0) return;
+    KadDOM.clearFirstChild(Element.HTML);
+    let select = checkReturn(startIndex, startValue);
+    for (let data of list) {
+      let d = Array.isArray(data) ? data : [data];
+      const opt = new Option(...d);
+      opt.disabled = d.length > 2 ? d[2] : false;
+      Element.HTML.appendChild(opt);
+      if (select[1] == "value" && select[0] == d[1]) {
+        opt.selected = true;
+      }
+    }
+    if (select[1] == "index") Element.HTML.selectedIndex = select[0];
+  }
+  function makeGroupList(groupList = {}) {
+    if (objectLength(groupList) == 0) return;
+    KadDOM.clearFirstChild(Element.HTML);
+    let select = checkReturn(startIndex, startValue);
+    for (let [groupName, list] of Object.entries(groupList)) {
+      let optG;
+      if (groupName) {
+        optG = document.createElement("optgroup");
+        Element.HTML.appendChild(optG);
+        optG.label = groupName;
+      }
+      for (let data of list) {
+        let d = Array.isArray(data) ? data : [data];
+        const opt = new Option(...d);
+        opt.disabled = d.length > 2 ? d[2] : false;
+        optG.appendChild(opt);
+        if (select[1] == "value" && select[0] == d[1]) {
+          opt.selected = true;
+        }
+      }
+    }
+    if (select[1] == "index") Element.HTML.selectedIndex = select[0];
+  }
 
   function typingAnimation(Element, setType) {
     let writtenText = "";
@@ -440,59 +502,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     clearTimeout(animated.timer);
     Element.KadSetHTML();
   }
-  function makeDBlist(dbList) {
-    if (dbList.length > 0) {
-      Element.HTML.addEventListener(
-        "focus",
-        () => {
-          const datalist = document.createElement("datalist");
-          datalist.id = `idDlist_${Element.HTML.id}`;
-          Element.HTML.parentNode.appendChild(datalist);
-          Element.HTML.setAttribute("list", datalist.id);
-          for (const data of dbList) {
-            datalist.appendChild(new Option(data));
-          }
-        },
-        { once: true }
-      );
-    }
-  }
-  function makeSelList(list = []) {
-    KadDOM.clearFirstChild(Element.HTML);
-    let select = checkReturn(startIndex, startValue);
-    for (let data of list) {
-      let d = Array.isArray(data) ? data : [data];
-      const opt = new Option(...d);
-      opt.disabled = d.length > 2 ? d[2] : false;
-      Element.HTML.appendChild(opt);
-      if (select[1] == "value" && select[0] == d[1]) {
-        opt.selected = true;
-      }
-    }
-    if (select[1] == "index") Element.HTML.selectedIndex = select[0];
-  }
-  function makeGroupList(groupList = {}) {
-    KadDOM.clearFirstChild(Element.HTML);
-    let select = checkReturn(startIndex, startValue);
-    for (let [groupName, list] of Object.entries(groupList)) {
-      let optG;
-      if (groupName) {
-        optG = document.createElement("optgroup");
-        Element.HTML.appendChild(optG);
-        optG.label = groupName;
-      }
-      for (let data of list) {
-        let d = Array.isArray(data) ? data : [data];
-        const opt = new Option(...d);
-        opt.disabled = d.length > 2 ? d[2] : false;
-        optG.appendChild(opt);
-        if (select[1] == "value" && select[0] == d[1]) {
-          opt.selected = true;
-        }
-      }
-    }
-    if (select[1] == "index") Element.HTML.selectedIndex = select[0];
-  }
+
   function checkReturn(startIndex, startValue) {
     let indexNull = startIndex === null;
     let valueNull = startValue === null;
@@ -509,6 +519,43 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     if (typeString == "undefined") return false;
     if (typeString != "object") return true;
   }
+  function resetInput(obj, type, value = null) {
+    if (ElementHasChild) return; // do not reset when a Childnode like an Image exists
+    switch (type) {
+      case "date":
+      case "time":
+      case "datetime-local":
+      case "color":
+        obj.value = value;
+        break;
+      case "submit":
+      case "DIV":
+      case "LABEL":
+      case "button":
+        obj.textContent = value;
+        break;
+      case "checkbox":
+        obj.checked = value;
+        break;
+      default:
+        obj.placeholder = value;
+        obj.value = "";
+    }
+  }
+}
+
+export function stackFunctionName(level = 0) {
+  const levelString = Error().stack.split(/\r?\n|\r|\n/g);
+  const l = Math.min(Math.max(0, level + 1), levelString.length - 1); // "+2" to ignore log-chain in KadUtils
+  let arr = levelString[l].split(/[@://]{1,}/);
+  const fileIndex = arr.findIndex((e) => e.includes(".js"));
+  let path = "/";
+  for (let i = 4; i < fileIndex; i++) {
+    path += `${arr[i]}/`;
+  }
+  path += arr[fileIndex];
+  const functionName = arr[0];
+  return { path, functionName };
 }
 
 export const KadLog = {
@@ -612,19 +659,6 @@ export const KadLog = {
   },
 };
 
-export function stackFunctionAt(level = 0) {
-  const levelString = Error().stack.split(/\r?\n|\r|\n/g);
-  const l = Math.min(Math.max(0, level + 1), levelString.length - 1); // "+2" to ignore log-chain in KadUtils
-  let arr = levelString[l].split(/[@://]{1,}/);
-  const fileIndex = arr.findIndex((e) => e.includes(".js"));
-  let path = "/";
-  for (let i = 4; i < fileIndex; i++) {
-    path += `${arr[i]}/`;
-  }
-  path += arr[fileIndex];
-  return { path, functionName: arr[0] };
-}
-
 export const KadFile = {
   /**
    * @async
@@ -646,7 +680,7 @@ export const KadFile = {
     if (KadLog.errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
     if (KadLog.errorCheckedLevel(callback == null && errorCallback == null && variable == null && variableArray == null, 2, "No way to return the data is provided! use callback or variable")) return;
 
-    const requestName = stackFunctionAt(1).functionName;
+    const requestName = stackFunctionName(1).functionName;
 
     if (KadFile.currentRequestTimers.hasOwnProperty(requestName)) {
       clearTimeout(KadFile.currentRequestTimers[requestName]);
@@ -779,14 +813,14 @@ export const KadDOM = {
     return `Data/Images/${name}.svg`;
   },
   htmlSetButtonType(id = null) {
-    if (id && dbID(id).nameTag == "BUTTON") {
-      dbID(id).type = "button";
-    } else {
-      const buttons = document.getElementsByTagName("button");
-      for (let button of buttons) {
-        button.type = "button";
-      }
+    // if (id && dbID(id).nameTag == "BUTTON") {
+    //   dbID(id).type = "button";
+    // } else {
+    const buttons = document.getElementsByTagName("button");
+    for (let button of buttons) {
+      button.type = "button";
     }
+    // }
   },
   htmlSetVinChange() {
     const dirName = ["oSub", "trash", "oAdd"];
@@ -808,8 +842,8 @@ export const KadDOM = {
       }
     }
   },
-  resetInput(id, ph = null, domOpts = null) {
-    const obj = dbID(id);
+  resetInput(obj, ph = null, domOpts = null) {
+    KadLog.logChecked(typeof obj != "string", "Object should be a string!");
     const type = obj.type ? obj.type : obj.nodeName;
     if (obj.type == "checkbox") {
       obj.checked = ph;
@@ -847,8 +881,8 @@ export const KadDOM = {
     if (state) obj.removeAttribute("disabled");
     else obj.setAttribute("disabled", "true");
   },
-  btnColor(id, opt = null) {
-    const obj = dbID(id);
+  btnColor(obj, opt = null) {
+    KadLog.logChecked(typeof obj == "string", `${obj} should be a HTML Object`);
     if (opt === null) obj.classList.remove("btnPositive", "btnNegative", "btnBasecolor");
     else if (opt === "positive") obj.classList.add("btnPositive");
     else if (opt === "negative") obj.classList.add("btnNegative");
