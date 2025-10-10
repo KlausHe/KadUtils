@@ -85,8 +85,18 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
       "\nSuported Items:\n",
       nonSettings.join(" / ")
     );
+
   const type = Element.HTML.type ? Element.HTML.type : Element.HTML.nodeName;
-  if (fn) Element.HTML.addEventListener(action || typeAction[type], fn);
+
+  if (fn) {
+    if (Array.isArray(fn)) {
+      const callback = fn.splice(0, 1)[0];
+      Element.HTML.addEventListener(action || typeAction[type], () => callback({ Element, data: fn }));
+    } else {
+      Element.HTML.addEventListener(action || typeAction[type], fn);
+    }
+  }
+
   // save initial parameters
   let list = selList;
   let groupList = selGroup;
@@ -108,12 +118,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
   // apply options
-  if (domOpts != null) {
-    // KadLog.log(domOpts);
-    for (let [key, val] of Object.entries(domOpts)) {
-      Element.HTML[key] = val;
-    }
-  }
+  makeDOMopts(domOpts);
   // apply styling
   makeAttributes(uiOpts);
   // fill "datasets"
@@ -127,10 +132,9 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
 
   // add GET
   if (["number"].includes(type)) {
-    Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+    Element.KadGet = function ({ noPlaceholder = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-      let fail = failSafe != null ? failSafe : resetValue;
-      return KadDOM.numberFromInput({ Element: Element.HTML, failSafeVal: fail, noPlaceholder });
+      return KadDOM.numberFromInput({ Element: Element.HTML, noPlaceholder });
     };
   }
   if (action != "focus" && ["text", "email", "password", "textarea"].includes(type)) {
@@ -241,7 +245,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
         for (let button of buttons) {
           KadDOM.btnColor(button, null);
         }
-        Element.KadButtonColor("positive");
+        Element.KadButtonColor("colored");
       };
       Element.HTML.addEventListener(action || typeAction[type], function () {
         Element.KadRadioColor();
@@ -384,20 +388,23 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   // finished! return the HTML-Object
   return Element;
 
+  function makeDOMopts(domOpts) {
+    if (objectLength(domOpts) == 0) return;
+    for (let [key, val] of Object.entries(domOpts)) {
+      Element.HTML[key] = val;
+    }
+  }
   function makeAttributes(uiOpts) {
-    if (uiOpts != null) {
-      // KadLog.log(uiOpts);
-      for (let [key, value] of Object.entries(uiOpts)) {
-        Element.HTML.setAttribute(key, value);
-      }
+    if (objectLength(uiOpts) == 0) return;
+    for (let [key, value] of Object.entries(uiOpts)) {
+      Element.HTML.setAttribute(key, value);
     }
   }
   function makeDatasets(dataset) {
-    if (dataset.length > 0) {
-      const datasetArray = !Array.isArray(dataset[0]) ? [dataset] : dataset;
-      for (let set of datasetArray) {
-        Element.HTML.dataset[set[0]] = set[1];
-      }
+    if (dataset.length == 0) return;
+    const datasetArray = !Array.isArray(dataset[0]) ? [dataset] : dataset;
+    for (let set of datasetArray) {
+      Element.HTML.dataset[set[0]] = set[1];
     }
   }
   function makeDBlist(dbList) {
@@ -889,10 +896,9 @@ export const KadDOM = {
     else if (opt === "colored") obj.classList.add("btnBasecolor");
   },
   vinChange(Element = null, direction) {
-    const id = dbID(Element);
     let obj = null;
-    let siblingList = Array.from(id.parentNode.children);
-    for (let i = siblingList.indexOf(id) - 1; i >= 0; i--) {
+    let siblingList = Array.from(Element.parentNode.children);
+    for (let i = siblingList.indexOf(Element) - 1; i >= 0; i--) {
       if (siblingList[i].type != "button" && siblingList[i].type != "submit") {
         obj = siblingList[i];
         break;
@@ -900,7 +906,6 @@ export const KadDOM = {
     }
     if (obj == null) return;
     if (obj.disabled) return;
-    const dir = Number(direction);
     if (obj.type == "time") evaluateTime();
     if (["submit", "number"].includes(obj.type)) evaluateNumber();
     obj.dispatchEvent(new Event("input"));
@@ -908,13 +913,13 @@ export const KadDOM = {
     function evaluateTime() {
       const h = Number(obj.value.slice(0, 2));
       const m = Number(obj.value.slice(3, 5));
-      let time = m + h * 60 + dir;
+      let time = m + h * 60 + direction;
       // time += time % 5 == 0 ? dir * 5 : dir;  // <-- used to skip to next 5/10 number... confusing->deactivated
       const t = KadDate.minutesToObj(time);
       obj.value = `${t.h}:${t.m}`;
     }
     function evaluateNumber() {
-      if (dir == 0) {
+      if (direction == 0) {
         // const time = new Date().getTime();
         // obj.setAttribute("data-ts", time);
         if (Number(obj.value) === 0 || Number(obj.value) === Number(obj.min)) {
@@ -933,14 +938,14 @@ export const KadDOM = {
       // const actual = obj.value == "" && obj.placeholder != "" ? Number(obj.placeholder) : Number(obj.value);
       // let num = 0;
       // if (obj.hasAttribute("step")) {
-      // 	num = actual + dir * Number(obj.step);
+      // 	num = actual + direction * Number(obj.step);
       // } else {
-      // num = skip && actual % 5 == 0 ? actual + dir * 5 : actual + dir;
+      // num = skip && actual % 5 == 0 ? actual + direction * 5 : actual + direction;
       // }
       const actual = obj.value == "" && obj.placeholder != "" ? Number(obj.placeholder) : Number(obj.value);
-      let num = actual + dir;
-      const min = obj.hasAttribute("min") && dir < 1 ? Number(obj.min) : null;
-      const max = obj.hasAttribute("max") && dir > 0 ? Number(obj.max) : null;
+      let num = actual + direction;
+      const min = obj.hasAttribute("min") && direction < 1 ? Number(obj.min) : null;
+      const max = obj.hasAttribute("max") && direction > 0 ? Number(obj.max) : null;
       obj.value = KadValue.constrain(num, min, max);
     }
   },
@@ -1155,6 +1160,18 @@ export const KadArray = {
   },
 };
 export const KadRandom = {
+  random(max = null, min = null) {
+    const base = Math.random();
+    if (min == null && max == null) return base;
+    if (max != null && min == null) return base * max;
+    return base * (max - min) + min;
+  },
+  randomInt(max = null, min = null) {
+    return Math.floor(this.random(max, min));
+  },
+  randomBool(lowerPropability = 0.5) {
+    return Math.random() < lowerPropability;
+  },
   randomIndex(obj) {
     if (typeof obj == "string") return Math.floor(Math.random() * obj.length);
     if (Array.isArray(obj)) return Math.floor(Math.random() * obj.length);
