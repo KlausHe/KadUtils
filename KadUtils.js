@@ -45,8 +45,9 @@ export function toArray(val) {
   if (!Array.isArray(val)) return [val];
   return val;
 }
+const supportedTypes = ["date", "time", "datetime-local", "color", "submit", "DIV", "button", "select", "select-one", "LABEL", "H1", "H2", "H3", "checkbox", "text", "email", "password", "textarea", "number", "PROGRESS", "file", "CANVAS"];
 
-export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], btnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, domOpts = {}, uiOpts = {}, dataset = [] }) {
+export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [] }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id) };
   const ElementHasChild = Element.HTML.hasChildNodes();
@@ -63,19 +64,19 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     number: "input",
     submit: "click",
     button: "click",
-    "select-one": "change",
     select: "change",
+    "select-one": "change",
     checkbox: "click",
-    time: "input",
     date: "change",
+    time: "input",
     "datetime-local": "change",
     Canv: "keydown",
     DIV: "click",
     LABEL: "click",
   };
 
-  const nonSettings = ["id", "action", "fn", "selGroup", "selList", "selStartIndex", "selStartValue", "dbList", "btnCallbacks", "resetValue", "animatedText", "dateOpts", "domOpts", "uiOpts", "dataset"];
-  if (Object.keys(arguments[0]).some((key) => !nonSettings.includes(key)))
+  const nonSettings = ["id", "action", "fn", "selGroup", "selList", "selStartIndex", "selStartValue", "dbList", "radioBtnCallbacks", "resetValue", "animatedText", "dateOpts", "settings", "dataset"];
+  if (Object.keys(arguments[0]).some((key) => !nonSettings.includes(key))) {
     KadLog.errorLevel(
       2,
       "Wrong arguments found: ",
@@ -85,8 +86,11 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
       "\nSuported Items:\n",
       nonSettings.join(" / ")
     );
-
+  }
   const type = Element.HTML.type ? Element.HTML.type : Element.HTML.nodeName;
+  if (!supportedTypes.includes(type)) {
+    resetTypes.add(type);
+  }
 
   if (fn) {
     if (Array.isArray(fn)) {
@@ -102,7 +106,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   let groupList = selGroup;
   let startIndex = selStartIndex;
   let startValue = selStartValue;
-  let callbacks = btnCallbacks || [];
+  let callbacks = radioBtnCallbacks || [];
   let callbackIndex = 0;
   let reset = resetValue;
   let animated = {
@@ -117,10 +121,9 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   };
   let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
-  // apply options
-  makeDOMopts(domOpts);
-  // apply styling
-  makeAttributes(uiOpts);
+  // apply options / styling
+  makeSettings(settings);
+
   // fill "datasets"
   makeDatasets(dataset);
   // fill "datalist"
@@ -138,11 +141,9 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     };
   }
   if (action != "focus" && ["text", "email", "password", "textarea"].includes(type)) {
-    Element.KadGet = function ({ failSafe = null, noPlaceholder = null } = {}) {
+    Element.KadGet = function ({ noPlaceholder = null } = {}) {
       if (KadLog.errorCheckedLevel(checkObjectType(typeof arguments[0]), 2, "KadGet() expects an object!")) return;
-      let fail = failSafe != null ? failSafe : resetValue;
-      fail = noPlaceholder != null ? null : fail;
-      return KadDOM.stringFromInput({ Element: Element.HTML, failSafeVal: fail, noPlaceholder });
+      return KadDOM.stringFromInput({ Element: Element.HTML, noPlaceholder });
     };
   }
   if (action != "focus" && ["select-one", "select"].includes(type)) {
@@ -388,16 +389,36 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   // finished! return the HTML-Object
   return Element;
 
-  function makeDOMopts(domOpts) {
-    if (objectLength(domOpts) == 0) return;
-    for (let [key, val] of Object.entries(domOpts)) {
-      Element.HTML[key] = val;
-    }
-  }
-  function makeAttributes(uiOpts) {
-    if (objectLength(uiOpts) == 0) return;
-    for (let [key, value] of Object.entries(uiOpts)) {
-      Element.HTML.setAttribute(key, value);
+  function makeSettings(settings = null) {
+    if (settings === null) return;
+    if (objectLength(settings) == 0) return;
+    const element = Element.HTML;
+    for (let [key, value] of Object.entries(settings)) {
+      switch (key) {
+        case "class":
+          element.classList.add(...toArray(value));
+          break;
+        case "backgroundColor":
+          element.style.backgroundColor = KadColor.formatAsCSS({ colorArray: value });
+          element.style.color = KadColor.stateAsCSS({ colorArray: value });
+          break;
+        case "cursor":
+          element.style.cursor = value;
+          break;
+        case "disabled":
+          if (value) element.setAttribute(key, value);
+          else element.removeAttribute(key);
+          break;
+        case "forLabel":
+          if (type != "LABEL") break;
+          if (dbIDStyle(`idCheckbox_${value}`).display != "none") {
+            element.setAttribute("for", `idCheckbox_${value}`);
+          }
+          break;
+        default:
+          element.setAttribute(key, value);
+          break;
+      }
     }
   }
   function makeDatasets(dataset) {
@@ -526,31 +547,58 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     if (typeString == "undefined") return false;
     if (typeString != "object") return true;
   }
-  function resetInput(obj, type, value = null) {
+  function resetInput(element, type, value = null) {
     if (ElementHasChild) return; // do not reset when a Childnode like an Image exists
     switch (type) {
       case "date":
       case "time":
       case "datetime-local":
       case "color":
-        obj.value = value;
+        element.value = value;
         break;
       case "submit":
       case "DIV":
-      case "LABEL":
       case "button":
-        obj.textContent = value;
+        element.textContent = value;
+        break;
+      case "LABEL":
+      case "H1":
+      case "H2":
+      case "H3":
+        element.innerHTML = value;
         break;
       case "checkbox":
-        obj.checked = value;
+        if (value === null) {
+          element.style.display = "none";
+        } else {
+          element.checked = value;
+        }
+        break;
+      case "text":
+      case "email":
+      case "password":
+      case "textarea":
+      case "number":
+        element.value = "";
+        element.placeholder = value;
+        break;
+      case "PROGRESS":
+        element.value = "";
+        break;
+      case "file":
+      case "CANVAS":
+        // no functionality here
         break;
       default:
-        obj.placeholder = value;
-        obj.value = "";
+        element.placeholder = value;
+        element.value = "";
     }
   }
 }
-
+let resetTypes = new Set();
+export function showTypes() {
+  KadLog.errorCheckedLevel(resetTypes.size > 0, 4, 'unsupported Types in "resetInput": ', Array.from(resetTypes).join(" / "), "\nSuported Items:\n", supportedTypes.join(" / "));
+}
 export function stackFunctionName(level = 0) {
   const levelString = Error().stack.split(/\r?\n|\r|\n/g);
   const l = Math.min(Math.max(0, level + 1), levelString.length - 1); // "+2" to ignore log-chain in KadUtils
@@ -946,19 +994,22 @@ export const KadDOM = {
       let num = actual + direction;
       const min = obj.hasAttribute("min") && direction < 1 ? Number(obj.min) : null;
       const max = obj.hasAttribute("max") && direction > 0 ? Number(obj.max) : null;
-      obj.value = KadValue.constrain(num, min, max);
+      obj.value = KadValue.constrain({ value: num, min, max });
     }
   },
-  numberFromInput({ Element = null, failSafeVal = null, noPlaceholder = null } = {}) {
-    if (!isNaN(Element.valueAsNumber)) return Element.valueAsNumber;
-    if (failSafeVal != null) return failSafeVal;
-    if (noPlaceholder != null) return null;
-    return Number(Element.placeholder);
+  numberFromInput({ Element = null, noPlaceholder = null } = {}) {
+    let value = null;
+    if (!isNaN(Element.valueAsNumber)) value = Element.valueAsNumber;
+    else if (noPlaceholder === null) value = Number(Element.placeholder);
+    else if (noPlaceholder != null) return null;
+    const min = Element.hasAttribute("min") ? Element.min : null;
+    const max = Element.hasAttribute("max") ? Element.max : null;
+    value = KadValue.constrain({ value, min, max });
+    return value;
   },
-  stringFromInput({ Element = null, failSafeVal = null, noPlaceholder = true } = {}) {
+  stringFromInput({ Element = null, noPlaceholder = true } = {}) {
     const value = Element.value.trim();
     if (value != "") return Element.value;
-    if (failSafeVal != null) return failSafeVal;
     if (noPlaceholder != null) return "";
     return Element.placeholder;
   },
@@ -1035,26 +1086,26 @@ export const KadValue = {
 
     return Intl.NumberFormat(formating, options).format(value);
   },
-  constrain(val, min = null, max = null) {
-    if (min == null && max == null) return val;
-    if (min != null && max != null) return Math.max(Math.min(val, max), min);
-    if (min == null && max != null) return Math.min(val, max);
-    if (min != null && max == null) return Math.max(val, min);
+  constrain({ value, min = null, max = null }) {
+    if (min == null && max == null) return value;
+    if (min != null && max != null) return Math.max(Math.min(value, max), min);
+    if (min == null && max != null) return Math.min(value, max);
+    if (min != null && max == null) return Math.max(value, min);
   },
   mapping(i, start1, stop1, start2, stop2, bounds = false) {
     const val = ((i - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
     if (!bounds) return val;
     const up = Math.max(start2, stop2);
     const down = Math.min(start2, stop2);
-    return this.constrain(val, down, up);
+    return this.constrain({ value: val, min: down, max: up });
   },
   // untested!!!
-  constrainArray(arr, val, low = null, high = null) {
+  constrainArray(arr, value, low = null, high = null) {
     const arrayMin = Math.min(...arr);
     const arrayMax = Math.max(...arr);
-    let a = low || arrayMin;
-    let b = high || arrayMax;
-    this.constrain(val, a, b);
+    let min = low || arrayMin;
+    let max = high || arrayMax;
+    this.constrain({ value, min, max });
   },
   numberInRange(value, ...range) {
     if (range.length == 1) {
@@ -1160,13 +1211,13 @@ export const KadArray = {
   },
 };
 export const KadRandom = {
-  random(max = null, min = null) {
+  random({ max = null, min = null }) {
     const base = Math.random();
     if (min == null && max == null) return base;
     if (max != null && min == null) return base * max;
     return base * (max - min) + min;
   },
-  randomInt(max = null, min = null) {
+  randomInt({ max = null, min = null }) {
     return Math.floor(this.random(max, min));
   },
   randomBool(lowerPropability = 0.5) {
@@ -1830,6 +1881,7 @@ export const KadTable = {
   createCell(opt = {}) {
     opt.name = this.createCellName(opt);
     const child = KadTable.cells[opt.type](opt);
+
     KadTable.UIOptions(child, opt);
     return child;
   },

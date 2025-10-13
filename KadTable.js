@@ -1,4 +1,4 @@
-import { KadArray, KadColor, KadDOM, KadLog, copyToClipboard, deepClone, stackFunctionName, toArray } from "./KadUtils.js";
+import { KadArray, KadColor, KadLog, copyToClipboard, deepClone, initEL, stackFunctionName, toArray } from "./KadUtils.js";
 
 const settingLists = {
   wrapper: ["description", "thinBorder", "thickBorder", "noBorder", "ackgroundColor", "cursor", "align", "justify", "onclick", "onmouseover", "onmouseleave", "copy"],
@@ -6,200 +6,189 @@ const settingLists = {
 };
 
 export const KadDOMElements = {
-  createDOMElement({ parentElement = null, type = null, data, idName, idIndex = null, settings = null, idNameDepth }) {
+  createDOMElement({ parentElement = null, id = null, type = null, data, idIndex = null, settings = null }) {
     const element = this.Elements[type](data);
-    const idName_IdIndex = this.createID({ element, type, idName, idIndex, idNameDepth });
-    if (settings != null) {
-      this.createSettings({ element, type, idName: idName_IdIndex, idIndex, settings, idNameDepth });
-    }
+    element.id = id;
     if (parentElement != null) {
       parentElement.appendChild(element);
     }
+    //id, action, fn, selGroup, selList, selStartIndex, selStartValue, dbList, radioBtnCallbacks, resetValue, animatedText, dateOpts, domOpts, uiOpts, dataset
+    // initEL({ id: idName_IdIndex, fn: onclick  });
     return element;
   },
-  createID({ element, type, idName = null, idIndex, idNameDepth = 4 }) {
-    // if (KadLog.errorChecked(!idName, "No idNames provided for", type, idName, " Return without ID")) return;
-    if (!idName) return null;
-    let name = idName === true ? stackFunctionName(idNameDepth).functionName : idName;
-    if (idIndex != null) {
-      name += `_${idIndex}`;
-    }
-    element.id = `id${type}_${name}`;
-    return name;
-  },
-  createSettings({ element, type, idName, idIndex, settings, idNameDepth = 4 }) {
-    for (let [key, value] of Object.entries(settings)) {
-      if (key == "idName") continue;
-      switch (key) {
-        case "description":
-          element.description = value;
-          break;
-        case "title":
-          element.title = value;
-          break;
-        case "class":
-          element.classList.add(...toArray(value));
-          break;
-        case "for":
-          if (type != "Lbl") break;
-          {
-            let text = "idCheckbox";
-            if (value === true) {
-              text += `_${idName}`;
-            } else {
-              text += `_${value}_${idIndex}`;
-            }
-            element.setAttribute("for", text);
-          }
-          break;
-        case "forLabel":
-          if (type != "Lbl") break;
-          let text = `idCheckbox_${value}`;
-          element.setAttribute("for", text);
-          break;
-        case "font":
-          if (toArray(value).includes("bold")) {
-            element.style.fontWeight = "bold";
-          }
-          break;
-        case "dList":
-          if (!value[idIndex]) break;
-          const dList = document.createElement("datalist");
-          dList.id = `dList_uInfo_${idIndex}`;
-          element.setAttribute("list", dList.id);
-          element.appendChild(dList);
-          for (let sug of value[idIndex]) {
-            dList.appendChild(new Option(sug));
-          }
-          break;
-        case "backgroundColor":
-          element.style.backgroundColor = KadColor.formatAsCSS({ colorArray: value[idIndex] });
-          element.style.color = KadColor.stateAsCSS({ colorArray: value[idIndex] });
-          break;
-        case "cursor":
-          element.style.cursor = value;
-          break;
-        case "uiSize":
-        case "uiRadius":
-        case "imgSize":
-        case "uiType":
-        case "uiFlex":
-        case "uiFilter":
-          if (["ButtonImage", "ButtonUrlImage"].includes(type)) {
-            element.childNodes[0].setAttribute(key, value);
-          }
-          element.setAttribute(key, value);
-          break;
-        case "onclick":
-          let valueData = toArray(value);
-          const callback = valueData.splice(0, 1)[0];
-          element.addEventListener("click", () => callback({ element, index: idIndex, data: valueData }));
-          break;
-        default:
-          if (!settingLists.wrapper.includes(key)) {
-            KadLog.log(`Unhandled Parameter ${key} in 'cell'.`, element);
-            break;
-          }
-          break;
-      }
-    }
-  },
   Elements: {
-    Div(data = null) {
+    Div() {
       const element = document.createElement("DIV");
-      element.textContent = data;
       return element;
     },
-    Colorbox(data = null) {
+    Colorbox() {
       const element = this.Div();
       element.classList.add("cl_KadUtilsColoredBox");
-      element.style.background = KadColor.formatAsCSS({ colorArray: data, type: "HSL" });
-
       return element;
     },
-    Lbl(data) {
+    Lbl() {
       const element = document.createElement("LABEL");
-      element.innerHTML = data;
       return element;
     },
-    H1(data = null) {
+    H1() {
       const element = document.createElement("H1");
-      element.innerHTML = data;
       return element;
     },
-    H2(data = null) {
+    H2() {
       const element = document.createElement("H2");
-      element.innerHTML = data;
       return element;
     },
-    H3(data = null) {
+    H3() {
       const element = document.createElement("H3");
-      element.innerHTML = data;
       return element;
     },
-    Button(data = null) {
+    Button() {
       const element = document.createElement("Button");
       element.type = "button";
-      element.textContent = data;
       return element;
     },
-    ButtonImgKAD(data = null) {
+    ButtonImgKAD() {
       const element = this.Button();
-      const img = this.ImgKAD(data);
+      const img = this.ImgKAD();
       element.appendChild(img);
       return element;
     },
-    ButtonImgURL(data = null) {
+    ButtonImgURL() {
       const element = this.Button();
-      const img = this.ImgURL(data);
+      const img = this.ImgURL();
       element.appendChild(img);
       return element;
     },
-    Image(data = null) {
+    Image() {
       const element = document.createElement("IMG");
-      element.src = data || "";
       return element;
     },
-    ImgKAD(data = null) {
+    ImgKAD() {
       const element = this.Image();
-      element.src = KadDOM.getImgPath(data);
       element.style.padding = 0;
       element.setAttribute("imgSize", "tableImg");
       return element;
     },
-    ImgURL(data = null) {
+    ImgURL() {
       const element = this.Image();
-      element.src = data || "";
       element.setAttribute("referrerpolicy", "no-referrer");
       return element;
     },
-    Input(data = null) {
+    Input() {
       const element = document.createElement("Input");
-      element.placeholder = data;
-      element.value = "";
       return element;
     },
-    InputText(data = null) {
-      const element = this.Input(data);
+    InputText() {
+      const element = this.Input();
       element.type = "text";
       return element;
     },
-    InputNumber(data = null) {
-      const element = this.Input(data);
+    InputNumber() {
+      const element = this.Input();
       element.type = "number";
       return element;
     },
-    Checkbox(data = null) {
-      const element = this.Input(data);
+    Checkbox() {
+      const element = this.Input();
       element.type = "checkbox";
-      if (data === null) {
-        element.style.display = "none";
-      } else {
-        element.checked = data;
-      }
       return element;
     },
   },
+  // Elements: {
+  //   Div(data = null) {
+  //     const element = document.createElement("DIV");
+  //     element.textContent = data;
+  //     return element;
+  //   },
+  //   Colorbox(data = null) {
+  //     const element = this.Div();
+  //     element.classList.add("cl_KadUtilsColoredBox");
+  //     element.style.background = KadColor.formatAsCSS({ colorArray: data, type: "HSL" });
+  //     return element;
+  //   },
+  //   Lbl(data = null) {
+  //     const element = document.createElement("LABEL");
+  //     element.innerHTML = data;
+  //     return element;
+  //   },
+  //   H1(data = null) {
+  //     const element = document.createElement("H1");
+  //     element.innerHTML = data;
+  //     return element;
+  //   },
+  //   H2(data = null) {
+  //     const element = document.createElement("H2");
+  //     element.innerHTML = data;
+  //     return element;
+  //   },
+  //   H3(data = null) {
+  //     const element = document.createElement("H3");
+  //     element.innerHTML = data;
+  //     return element;
+  //   },
+  //   Button(data = null) {
+  //     const element = document.createElement("Button");
+  //     element.type = "button";
+  //     element.textContent = data;
+  //     return element;
+  //   },
+  //   ButtonImgKAD(data = null) {
+  //     const element = this.Button();
+  //     const img = this.ImgKAD(data);
+  //     element.appendChild(img);
+  //     return element;
+  //   },
+  //   ButtonImgURL(data = null) {
+  //     const element = this.Button();
+  //     const img = this.ImgURL(data);
+  //     element.appendChild(img);
+  //     return element;
+  //   },
+  //   Image(data = null) {
+  //     const element = document.createElement("IMG");
+  //     element.src = data || "";
+  //     return element;
+  //   },
+  //   ImgKAD(data = null) {
+  //     const element = this.Image();
+  //     element.src = KadDOM.getImgPath(data);
+  //     element.style.padding = 0;
+  //     element.setAttribute("imgSize", "tableImg");
+  //     return element;
+  //   },
+  //   ImgURL(data = null) {
+  //     const element = this.Image();
+  //     element.src = data || "";
+  //     element.setAttribute("referrerpolicy", "no-referrer");
+  //     return element;
+  //   },
+  //   Input(data = null) {
+  //     const element = document.createElement("Input");
+  //     element.placeholder = data;
+  //     element.value = "";
+  //     return element;
+  //   },
+  //   InputText(data = null) {
+  //     const element = this.Input(data);
+  //     element.type = "text";
+  //     return element;
+  //   },
+  //   InputNumber(data = null) {
+  //     const element = this.Input(data);
+  //     element.type = "number";
+  //     return element;
+  //   },
+  //   Checkbox(data = null) {
+  //     const element = this.Input(data);
+  //     element.type = "checkbox";
+  //     // if (data === null) {
+  //     //   element.style.display = "none";
+  //     // } else {
+  //     //   element.checked = data;
+  //     // }
+  //     return element;
+  //   },
+  // },
 };
 
 export const KadNewTable = {
@@ -254,7 +243,6 @@ export const KadNewTable = {
       tableSize.colsHeader = colsHeader;
       tableSize.rowsHeader = rowsHeader;
     }
-
     if (bodyAvailable) {
       this.appendDataIndexArray(body);
       dataBody = this.getSplitBodyWithMultiColumns(body);
@@ -317,33 +305,6 @@ export const KadNewTable = {
     }
   },
 
-  generateHeaderCells(header) {
-    let headerTemp = Array.isArray(header[0]) ? header : [header];
-    let headerArray = [];
-    let rowsHeader = headerTemp.length;
-    for (let r = 0; r < rowsHeader; r++) {
-      let data = [];
-      for (let i = 0; i < headerTemp[r].length; i++) {
-        const head = headerTemp[r][i];
-        data.push({
-          skip: head.hasOwnProperty("skip") ? head.skip : null,
-          type: head.hasOwnProperty("type") ? head.type : null,
-          data: head.hasOwnProperty("data") ? head.data : null,
-          dataIndex: i,
-          colSpan: head.hasOwnProperty("colSpan") ? head.colSpan : null,
-          settings: head.hasOwnProperty("settings") ? head.settings : null,
-        });
-        if (head.hasOwnProperty("colSpan")) {
-          for (let j = 0; j < head.colSpan - 1; j++) {
-            data.push({ skip: true });
-          }
-        }
-      }
-      headerArray[r] = data;
-    }
-    const colsHeader = headerArray[0].length;
-    return { headerArray, rowsHeader, colsHeader };
-  },
   createWrapperCellHeader({ grid, headerItem, tableSize, row, col }) {
     if (headerItem.skip) return;
     const wrapper = document.createElement("div");
@@ -363,14 +324,37 @@ export const KadNewTable = {
     grid.appendChild(wrapper);
     return wrapper;
   },
+
+  createWrapperCellBody({ grid, bodyItem, tableSize, row, col }) {
+    const wrapper = document.createElement("div");
+    if (bodyItem.settings) {
+      this.applyWrapperSettings({ wrapper, settings: bodyItem.settings, index: bodyItem.dataIndex, type: bodyItem.type });
+    }
+    wrapper.classList.add(this.CSSGrid.tableWrapperBody, this.CSSGrid.borderBottomThick, this.CSSGrid.borderRightThin);
+    this.setGridRow(wrapper, row);
+    this.setGridCol(wrapper, col, bodyItem.colSpan);
+    // TODO:     if (tableSize.rowsHeader > 1 && row < tableSize.rowsHeader - 1) this.styleNoBorderBottom(wrapper);
+    if (row < tableSize.rowsHeader - 1) this.styleNoBorderBottom(wrapper);
+    if (col == tableSize.colsHeader - 1) this.styleNoBorderRight(wrapper);
+    grid.appendChild(wrapper);
+    return wrapper;
+  },
+
   createHeaderCell({ wrapperHeader, headerItem }) {
     const type = headerItem.type ? headerItem.type : "Lbl";
-    const idName = headerItem?.settings?.idName;
-    const data = headerItem.data;
-    const settings = headerItem?.settings;
     if (KadLog.errorCheckedLevel(!Object.keys(KadDOMElements.Elements).includes(type), 2, "Unsupported Type: ", type, "\nSupported types:\n-", Object.keys(KadDOMElements.Elements).join("\n- "))) return;
-    const opts = { parentElement: wrapperHeader, type, idName, idIndex: headerItem.dataIndex, data, settings, idNameDepth: 5 };
-    KadDOMElements.createDOMElement(opts);
+
+    const idName = headerItem?.idName;
+    const idIndex = headerItem.dataIndex;
+    const { id, name } = this.createID({ type, idName, idIndex, idNameDepth: 3 });
+
+    const data = headerItem.data;
+    const element = KadDOMElements.Elements[type]();
+    element.id = id;
+    wrapperHeader.appendChild(element);
+
+    const initE = initEL({ id, resetValue: data, fn: headerItem.fn, settings: headerItem.settings });
+    // KadLog.log(initE);
   },
 
   // apply Wrapper SETTINGS
@@ -449,7 +433,122 @@ export const KadNewTable = {
     }
   },
 
+  // apply Body SETTINGS
+  // applyBodySettings({ element, settings = null, index = null, type = null }) {
+  //   for (let [key, value] of Object.entries(settings)) {
+  //     if (key == "idName") continue;
+  //     switch (key) {
+  //       case "description":
+  //         element.description = value;
+  //         break;
+  //       case "title":
+  //         element.title = value;
+  //         break;
+  //       case "class":
+  //         element.classList.add(...toArray(value));
+  //         break;
+  //       case "for":
+  //         if (type != "Lbl") break;
+  //         {
+  //           let text = "idCheckbox";
+  //           if (value === true) {
+  //             text += `_${index}`;
+  //           } else {
+  //             text += `_${value}_${index}`;
+  //           }
+  //           element.setAttribute("for", text);
+  //         }
+  //         break;
+  //       case "forLabel":
+  //         if (type != "Lbl") break;
+  //         let text = `idCheckbox_${value}`;
+  //         element.setAttribute("for", text);
+  //         break;
+  //       case "font":
+  //         if (toArray(value).includes("bold")) {
+  //           element.style.fontWeight = "bold";
+  //         }
+  //         break;
+  //       case "dList":
+  //         if (!value[index]) break;
+  //         const dList = document.createElement("datalist");
+  //         dList.id = `dList_uInfo_${index}`;
+  //         element.setAttribute("list", dList.id);
+  //         element.appendChild(dList);
+  //         for (let sug of value[index]) {
+  //           dList.appendChild(new Option(sug));
+  //         }
+  //         break;
+  //       case "backgroundColor":
+  //         element.style.backgroundColor = KadColor.formatAsCSS({ colorArray: value[index] });
+  //         element.style.color = KadColor.stateAsCSS({ colorArray: value[index] });
+  //         break;
+  //       case "cursor":
+  //         element.style.cursor = value;
+  //         break;
+  //       case "uiSize":
+  //       case "uiRadius":
+  //       case "imgSize":
+  //       case "uiType":
+  //       case "uiFlex":
+  //       case "uiFilter":
+  //         if (["ButtonImage", "ButtonUrlImage"].includes(type)) {
+  //           element.childNodes[0].setAttribute(key, value);
+  //         }
+  //         element.setAttribute(key, value);
+  //         break;
+  //       case "onclick":
+  //         let valueData = toArray(value);
+  //         const callback = valueData.splice(0, 1)[0];
+  //         element.addEventListener("click", () => callback({ element, index, data: valueData }));
+  //         break;
+  //       default:
+  //         if (!settingLists.wrapper.includes(key)) {
+  //           KadLog.log(`Unhandled Parameter ${key} in 'cell'.`, element);
+  //           break;
+  //         }
+  //         break;
+  //     }
+  //   }
+  // },
+
   //helper
+  createID({ type, idName = null, idIndex = null, idNameDepth = 3 }) {
+    let name = idName === null ? stackFunctionName(idNameDepth).functionName : idName;
+    if (idIndex != null) {
+      name += `_${idIndex}`;
+    }
+    return { id: `id${type}_${name}`, name };
+  },
+  generateHeaderCells(header) {
+    let headerTemp = Array.isArray(header[0]) ? header : [header];
+    let headerArray = [];
+    let rowsHeader = headerTemp.length;
+    for (let r = 0; r < rowsHeader; r++) {
+      let data = [];
+      for (let i = 0; i < headerTemp[r].length; i++) {
+        const head = headerTemp[r][i];
+        data.push({
+          skip: head.hasOwnProperty("skip") ? head.skip : null,
+          type: head.hasOwnProperty("type") ? head.type : null,
+          data: head.hasOwnProperty("data") ? head.data : null,
+          idName: head.hasOwnProperty("idName") ? head.idName : null,
+          dataIndex: i,
+          colSpan: head.hasOwnProperty("colSpan") ? head.colSpan : null,
+          fn: head.hasOwnProperty("fn") ? head.fn : null,
+          settings: head.hasOwnProperty("settings") ? head.settings : null,
+        });
+        if (head.hasOwnProperty("colSpan")) {
+          for (let j = 0; j < head.colSpan - 1; j++) {
+            data.push({ skip: true });
+          }
+        }
+      }
+      headerArray[r] = data;
+    }
+    const colsHeader = headerArray[0].length;
+    return { headerArray, rowsHeader, colsHeader };
+  },
   appendDataIndexArray(array) {
     for (let i = 0; i < array.length; i++) {
       array[i].dataIndex = KadArray.createIndexedArray(array[i].length);
