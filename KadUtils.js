@@ -1211,14 +1211,14 @@ export const KadArray = {
   },
 };
 export const KadRandom = {
-  random({ max = null, min = null }) {
+  random({ max = null, min = null } = {}) {
     const base = Math.random();
     if (min == null && max == null) return base;
     if (max != null && min == null) return base * max;
     return base * (max - min) + min;
   },
-  randomInt({ max = null, min = null }) {
-    return Math.floor(this.random(max, min));
+  randomInt({ max = null, min = null } = {}) {
+    return Math.floor(this.random({ max, min }));
   },
   randomBool(lowerPropability = 0.5) {
     return Math.random() < lowerPropability;
