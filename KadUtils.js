@@ -50,7 +50,12 @@ const supportedTypes = ["date", "time", "datetime-local", "color", "submit", "DI
 export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [] }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id) };
-  const ElementHasChild = Element.HTML.hasChildNodes();
+  let ElementHasChild = Element.HTML.hasChildNodes();
+
+  if (ElementHasChild && Element.HTML.nodeName === "LABEL" && Element.HTML.firstChild.nodeType === Node.TEXT_NODE) {
+    ElementHasChild = false;
+  }
+
   if (ElementHasChild) {
     Element.FirstChild = Element.HTML.firstChild;
     Element.ChildNodes = Element.HTML.childNodes;
