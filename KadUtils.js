@@ -1797,6 +1797,7 @@ export const KadTable = {
           break;
         //ui-Styles
         case "uiSize":
+        case "uiMaxSize":
         case "uiRadius":
         case "imgSize":
         case "uiType":
@@ -1815,9 +1816,9 @@ export const KadTable = {
           } else {
             const callback = data[0];
             if (Array.isArray(data[1])) {
-              wrapper.addEventListener("click", () => callback(data[1][rcIndex], cell), false);
+              wrapper.addEventListener("click", () => callback(data[1][rcIndex], rcIndex, cell), false);
             } else {
-              wrapper.addEventListener("click", () => callback(data[1], cell), false);
+              wrapper.addEventListener("click", () => callback(data[1], rcIndex, cell), false);
             }
           }
           break;
