@@ -1611,6 +1611,18 @@ export const KadTable = {
       child.innerHTML = data;
       return child;
     },
+    H2(data = null) {
+      const child = document.createElement("H2");
+      child.type = "H2";
+      child.innerHTML = data;
+      return child;
+    },
+    H3(data = null) {
+      const child = document.createElement("H3");
+      child.type = "H3";
+      child.innerHTML = data;
+      return child;
+    },
     Input(data = null) {
       const child = document.createElement("Input");
       child.type = "Input";
@@ -1736,6 +1748,10 @@ export const KadTable = {
             cell.setAttribute("for", text);
           }
           break;
+        case "fontSize":
+          cell.style.fontSize = value;
+          break;
+
         case "font":
           if (toArray(value).includes("bold")) {
             cell.style.fontWeight = "bold";
