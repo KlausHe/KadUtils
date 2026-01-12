@@ -47,7 +47,7 @@ export function toArray(val) {
 }
 const supportedTypes = ["date", "time", "datetime-local", "color", "submit", "DIV", "button", "select", "select-one", "LABEL", "H1", "H2", "H3", "checkbox", "text", "email", "password", "textarea", "number", "PROGRESS", "file", "CANVAS"];
 
-export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [] }) {
+export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [], label = null }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id) };
   let ElementHasChild = Element.HTML.hasChildNodes();
@@ -80,7 +80,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
     LABEL: "click",
   };
 
-  const nonSettings = ["id", "action", "fn", "selGroup", "selList", "selStartIndex", "selStartValue", "dbList", "radioBtnCallbacks", "resetValue", "animatedText", "dateOpts", "settings", "dataset"];
+  const nonSettings = ["id", "action", "fn", "selGroup", "selList", "selStartIndex", "selStartValue", "dbList", "radioBtnCallbacks", "resetValue", "animatedText", "dateOpts", "settings", "dataset", "label"];
   if (Object.keys(arguments[0]).some((key) => !nonSettings.includes(key))) {
     KadLog.errorLevel(
       2,
@@ -126,9 +126,10 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
   };
   let dateFormating = { format: null, dateObject: null, ...dateOpts };
 
+  // set Label (only initial, no changing afterwards)
+  makeLabel(label);
   // apply options / styling
   makeSettings(settings);
-
   // fill "datasets"
   makeDatasets(dataset);
   // fill "datalist"
@@ -376,6 +377,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
       return reset;
     };
   }
+
   Element.KadReset(); //call reset() on startup to initialize reset-Values
 
   // add Enable
@@ -393,6 +395,15 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
 
   // finished! return the HTML-Object
   return Element;
+
+  function makeLabel(label = null) {
+    if (label === null) return;
+    const IDname = id.split("_")[1];
+    const lblID = `idLbl_${IDname}`;
+    const lblElement = document.getElementById(lblID);
+    if (KadLog.errorChecked(lblElement == null, `no Label found for ${id} `)) return;
+    lblElement.innerHTML = label;
+  }
 
   function makeSettings(settings = null) {
     if (settings === null) return;
@@ -951,8 +962,8 @@ export const KadDOM = {
   vinChange(Element = null, direction) {
     let obj = null;
     let siblingList = Array.from(Element.parentNode.children);
-    for (let i = siblingList.indexOf(Element) - 1; i >= 0; i--) {
-      if (siblingList[i].type != "button" && siblingList[i].type != "submit") {
+    for (let i = 0; i < siblingList.indexOf(Element); i++) {
+      if (siblingList[i].nodeName == "INPUT") {
         obj = siblingList[i];
         break;
       }
