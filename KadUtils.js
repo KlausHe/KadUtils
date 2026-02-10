@@ -89,7 +89,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
         .filter((item) => !nonSettings.includes(item))
         .join(" / "),
       "\nSuported Items:\n",
-      nonSettings.join(" / ")
+      nonSettings.join(" / "),
     );
   }
   const type = Element.HTML.type ? Element.HTML.type : Element.HTML.nodeName;
@@ -457,7 +457,7 @@ export function initEL({ id = null, action = null, fn = null, selGroup = {}, sel
           datalist.appendChild(new Option(data));
         }
       },
-      { once: true }
+      { once: true },
     );
   }
   function makeSelList(list = []) {
@@ -743,9 +743,13 @@ export const KadFile = {
    * @returns {object}
    */
 
-  currentRequestTimers: {},
+  currentRequests: {},
+  clearRequest(reqName) {
+    clearTimeout(KadFile.currentRequests[reqName].timer);
+    delete KadFile.currentRequests[reqName];
+  },
 
-  async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null, callbackDelay = 1000 } = {}) {
+  async loadUrlToJSON({ variable = null, url = null, variableArray = null, urlArray = null, callback = null, errorCallback = null, callbackDelay = 400 } = {}) {
     if (KadLog.errorCheckedLevel(url == null && urlArray == null, 2, "No URL is provided!")) return;
     if (KadLog.errorCheckedLevel(variable != null && urlArray != null, 2, "Multiple URLS are called but only one variable porvided! Use ...Array consitantly")) return;
     if (KadLog.errorCheckedLevel(variableArray != null && url != null, 2, "One URL was called but multiple variables porvided! Don't use ...Array for a singe URL")) return;
@@ -753,45 +757,62 @@ export const KadFile = {
 
     const requestName = stackFunctionName(1).functionName;
 
-    if (KadFile.currentRequestTimers.hasOwnProperty(requestName)) {
-      clearTimeout(KadFile.currentRequestTimers[requestName]);
-      delete KadFile.currentRequestTimers[requestName];
-    }
-
-    let urls = url != null ? [url] : urlArray;
-    let vars = url != null ? [variable] : variableArray;
-
-    let urlData = { error: null };
-    for (let i = 0; i < urls.length; i++) {
-      urlData[vars[i]] = urls[i];
-    }
-
-    await KadFile.getDataURL(urlData);
-
-    if (callback == null) return urlData;
-    if (urlData.error != null) {
-      if (errorCallback == null) {
-        KadLog.log("no ErrorCallback() for", url, "but an Error occured!");
-        return;
-      }
-      errorCallback(urlData.error);
+    if (KadFile.currentRequests.hasOwnProperty(requestName)) {
+      KadFile.clearRequest(requestName);
     } else {
-      delete urlData.error;
-      KadFile.currentRequestTimers[requestName] = setTimeout(() => callback(urlData), callbackDelay);
+      KadFile.currentRequests[requestName] = {
+        url: null,
+        timer: null,
+        fetchCall: null,
+      };
+
+      let urls = url != null ? [url] : urlArray;
+      let vars = url != null ? [variable] : variableArray;
+
+      let urlData = { error: null };
+      for (let i = 0; i < urls.length; i++) {
+        urlData[vars[i]] = urls[i];
+      }
+      KadFile.currentRequests[requestName].url = urlData;
+
+      KadFile.currentRequests[requestName].fetchCall = async function (reqName) {
+        KadLog.log(`fetching ${reqName} ...`);
+        const returnData = await KadFile.getDataURL(KadFile.currentRequests[reqName].url);
+        if (callback == null) {
+          KadFile.clearRequest(reqName);
+          return returnData;
+        }
+
+        if (returnData.error != null) {
+          if (errorCallback == null) {
+            KadLog.log("no ErrorCallback() for", url, "but an Error occured!");
+            KadFile.clearRequest(reqName);
+            return;
+          }
+          errorCallback(returnData.error);
+        } else {
+          delete returnData.error;
+          callback(returnData);
+          KadFile.clearRequest(reqName);
+        }
+      };
+      KadFile.currentRequests[requestName].timer = setTimeout(() => KadFile.currentRequests[requestName].fetchCall(requestName), callbackDelay);
     }
   },
 
   async getDataURL(urlData) {
     let vars = Object.keys(urlData);
+    let ret = {};
     try {
       for await (let variable of vars) {
         if (variable == "error") continue;
         const response = await fetch(urlData[variable]);
-        urlData[variable] = await response.json();
+        ret[variable] = await response.json();
       }
     } catch (err) {
-      urlData.error = err;
+      ret.error = err;
     }
+    return ret;
   },
 
   /**
@@ -1189,6 +1210,7 @@ export const KadArray = {
   sortArrayByKey({ array = [], keys = [], key = null, inverse = false, caseSensitive = false } = {}) {
     if (KadLog.errorChecked(key == null && keys.length == 0, "No 'Key' or 'Keys' to sort passed!")) return;
     if (KadLog.errorChecked(Array.isArray(key), "'key' should not be an array! Use 'keys' instead")) return;
+    if (KadLog.errorChecked(!Array.isArray(keys), "'keys' should be an array! Use 'key' instead")) return;
 
     let keyArray = keys;
     if (key !== null) keyArray = toArray(key);
@@ -1522,7 +1544,7 @@ export const KadTable = {
                 .filter((item) => !nonSettings.includes(item))
                 .join(" / "),
               "\nSuported Items:\n",
-              nonSettings.join(" / ")
+              nonSettings.join(" / "),
             );
           }
         }
@@ -2234,22 +2256,22 @@ export const KadColor = {
     let t = v * (1 - (1 - f) * s);
     switch (i % 6) {
       case 0:
-        (r = v), (g = t), (b = p);
+        ((r = v), (g = t), (b = p));
         break;
       case 1:
-        (r = q), (g = v), (b = p);
+        ((r = q), (g = v), (b = p));
         break;
       case 2:
-        (r = p), (g = v), (b = t);
+        ((r = p), (g = v), (b = t));
         break;
       case 3:
-        (r = p), (g = q), (b = v);
+        ((r = p), (g = q), (b = v));
         break;
       case 4:
-        (r = t), (g = p), (b = v);
+        ((r = t), (g = p), (b = v));
         break;
       case 5:
-        (r = v), (g = p), (b = q);
+        ((r = v), (g = p), (b = q));
         break;
     }
     r = Math.round(r * 255);
