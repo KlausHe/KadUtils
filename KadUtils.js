@@ -776,7 +776,6 @@ export const KadFile = {
       KadFile.currentRequests[requestName].url = urlData;
 
       KadFile.currentRequests[requestName].fetchCall = async function (reqName) {
-        KadLog.log(`fetching ${reqName} ...`);
         const returnData = await KadFile.getDataURL(KadFile.currentRequests[reqName].url);
         if (callback == null) {
           KadFile.clearRequest(reqName);
