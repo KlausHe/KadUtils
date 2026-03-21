@@ -1093,7 +1093,7 @@ export const KadInteraction = {
   // },
 };
 export const KadValue = {
-  number(value = 1, { form = null, indicator = "", leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard" } = {}) {
+  number(value = 1, { form = null, indicator = "", leadingDigits = 1, decimals = 1, currency = null, unit = null, notation = "standard", cap = "" } = {}) {
     const formating = form == null ? "de-DE" : indicator == "," ? "de-DE" : "en-EN";
     let options = {
       useGrouping: indicator,
@@ -1108,19 +1108,27 @@ export const KadValue = {
       }
     }
     if (currency) {
-      options.useGrouping = true;
+      options.useGrouping = "true";
       options.style = "currency";
       options.currency = currency;
       options.maximumFractionDigits = 3;
     }
     if (unit) {
+      options.useGrouping = "true";
       options.style = "unit";
       options.unit = unit;
       options.unitDisplay = "short";
-      options.useGrouping = true;
     }
-
-    return Intl.NumberFormat(formating, options).format(value);
+    let retValue = value;
+    switch (cap) {
+      case "floor":
+        retValue = Math.floor(value);
+        break;
+      case "ceil":
+        retValue = Math.ceil(value);
+        break;
+    }
+    return Intl.NumberFormat(formating, options).format(retValue);
   },
   constrain({ value, min = null, max = null }) {
     if (min == null && max == null) return value;
