@@ -47,7 +47,7 @@ export function toArray(val) {
 }
 const supportedTypes = ["date", "time", "datetime-local", "color", "submit", "DIV", "button", "select", "select-one", "LABEL", "H1", "H2", "H3", "checkbox", "text", "email", "password", "textarea", "number", "PROGRESS", "file", "CANVAS"];
 
-export function initEL({ id = null, action = null, fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [], label = null }) {
+export function initEL({ id = "", action = "", fn = null, selGroup = {}, selList = [], selStartIndex = null, selStartValue = null, dbList = [], radioBtnCallbacks = [], resetValue = null, animatedText = {}, dateOpts = {}, settings = {}, dataset = [], label = null }) {
   if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
   const Element = { HTML: document.getElementById(id), isKadElement: true };
   let ElementHasChild = Element.HTML.hasChildNodes();
@@ -1436,9 +1436,9 @@ export const KadTable = {
     borderLeftThin: "KadUtilsBorderLeftThin",
     borderLeftThick: "KadUtilsBorderLeftThick",
   },
-  createHTMLGrid({ id = null, header = null, body = null, CSSGrid = {} } = {}) {
+  createHTMLGrid({ id = "", header = null, body = null, CSSGrid = {} } = {}) {
     if (KadLog.errorCheckedLevel(typeof id != "string", 3, "ID is not a string")) return;
-    if (KadLog.errorCheckedLevel(id == null, 2, "No ID passed")) return;
+    if (KadLog.errorCheckedLevel(id == "", 2, "No ID passed")) return;
     if (KadLog.errorCheckedLevel(body != null && !Array.isArray(body), 2, "Body has to be an Array!")) return;
 
     this.CSSGrid = { ...this.CSSGrid, ...CSSGrid };
